@@ -3,16 +3,19 @@ import cv2
 import numpy as np
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-import threading
-from flask import Flask, render_template, jsonify
+import os
+import keyboard
 
-app = Flask(__name__)
+# csv파일 경로설정정
+csv_file = "data_test.csv"
+file_exists = os.path.isfile(csv_file)
 
-current_idx = 0  # 웹에서 가져갈 최신 제스처 키값
-running = True   # 프로그램 종료 제어
+import csv
+f = open(csv_file, "a", newline="")
+writer = csv.writer(f)
+
 
 # --- 1. KNN 모델 로드 및 학습 ---
-# data.csv가 같은 폴더에 있어야 합니다.
 file = np.genfromtxt('data.csv', delimiter=',')
 angle_data = file[:, :-1].astype(np.float32)
 label_data = file[:, -1].astype(np.float32)
@@ -27,6 +30,8 @@ mp_hands = mp.tasks.vision.HandLandmarksConnections
 mp_drawing = mp.tasks.vision.drawing_utils
 mp_drawing_styles = mp.tasks.vision.drawing_styles
 
+# 옵션들
+MAX_HAND = 2
 MARGIN = 10
 FONT_SIZE = 1
 FONT_THICKNESS = 1
@@ -42,7 +47,6 @@ def draw_landmarks_on_image(rgb_image, detection_result):
     for idx in range(len(hand_landmarks_list)):
         hand_landmarks = hand_landmarks_list[idx]
         handedness = handedness_list[idx]
-
         # 랜드마크 시각화
         mp_drawing.draw_landmarks(
             annotated_image,
@@ -70,7 +74,6 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         data = np.array([angle], dtype=np.float32)
         ret, results, neighbours, dist = knn.findNearest(data, 3)
         idx = int(results[0][0])
-        current_idx = int(results[0][0])
         # 텍스트 위치 선정 (바운딩 박스 상단)
         height, width, _ = annotated_image.shape
         x_coords = [landmark.x for landmark in hand_landmarks]
@@ -78,10 +81,9 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         text_x = int(min(x_coords) * width)
         text_y = int(min(y_coords) * height) - MARGIN
 
-        # 최종 표시: [왼손/오른손] + [제스처 이름]
-        display_text = f"{handedness[0].category_name}"
+        display_text = ""
         if idx in gesture_names:
-            display_text += f" : {gesture_names[idx].upper()}"
+            display_text += f"{gesture_names[idx].upper()}"
 
         cv2.putText(annotated_image, display_text, (text_x, text_y), 
                     cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
@@ -89,58 +91,38 @@ def draw_landmarks_on_image(rgb_image, detection_result):
     return annotated_image
 
 # --- 3. 실행 엔진 초기화 ---
-def update_gesture():
-    global running
-    base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
-    options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=2)
-    detector = vision.HandLandmarker.create_from_options(options)
+base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
+options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=MAX_HAND)
+detector = vision.HandLandmarker.create_from_options(options)
 
-    cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(0) # 처음 연결된 비디오 확인
 
-    while cap.isOpened() and running:
-        ret, frame = cap.read()
-        if not ret: break
+while cap.isOpened():
+    ret, frame = cap.read()
+    if not ret: break 
 
-        frame = cv2.flip(frame, 1)
-        cvt_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        image = mp.Image(mp.ImageFormat.SRGB, cvt_frame)
+    frame = cv2.flip(frame, 1) # 좌우반전
+    cvt_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    image = mp.Image(mp.ImageFormat.SRGB, cvt_frame)
 
-        # 손 탐지
-        detection_result = detector.detect(image)
+    # 손 탐지
+    detection_result = detector.detect(image)
 
-        if detection_result.hand_landmarks:
-            # 랜드마크와 제스처를 모두 포함한 이미지 생성
-            annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
-            cv2.imshow("Hand Gesture Recognition", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
-        else:
-            cv2.imshow("Hand Gesture Recognition", frame)
+    if detection_result.hand_landmarks:
+        # 랜드마크와 제스처를 모두 포함한 이미지 생성
+        annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
+        cv2.imshow("Hand Gesture Recognition", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
+    else: # 손이 없을때 일반 화면 출력력
+        cv2.imshow("Hand Gesture Recognition", frame)
+    
+    if keyboard.is_pressed('esc') and keyboard.is_pressed('q'): # ESC + Q -> 종료료
+        break
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+    cv2.waitKey(1)
 
-    detector.close()
-    cap.release()
-    cv2.destroyAllWindows()
-    print("Webcam thread finished. Shutting down server...")
-    running = False
 
-@app.route('/')
-def index():
-    return render_template('test.html')
-
-@app.route('/get_gesture_data')
-def get_gesture_data():
-    # 여기서 전역변수 current_idx를 가져와서 이름으로 변환
-    name = gesture_names.get(current_idx, "None")
-    # 자바스크립트가 읽을 수 있게 JSON 형식으로 보냄
-    return jsonify(result=name)
-
-# --- 4. 메인 실행부 ---
-if __name__ == '__main__':
-    # 1. 웹캠 처리를 별도 쓰레드에서 실행
-    cam_thread = threading.Thread(target=update_gesture)
-    cam_thread.daemon = True # 메인 프로그램 종료 시 함께 종료
-    cam_thread.start()
-
-    # 2. Flask 앱 실행
-    app.run(host='0.0.0.0', port=5000)
+# 마무리작업
+detector.close()
+cap.release()
+cv2.destroyAllWindows()
+f.close()
