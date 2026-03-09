@@ -7,13 +7,18 @@ import signal
 import sys
 
 import dbus
+import dbus.bus
 import dbus.mainloop.glib
+import dbus.service
 from gi.repository import GLib
+
+from .api.api import ApiService
 
 from .bluez.advertisement import Advertisement
 from .bluez.agent import SimpleAgent
 from .bluez.application import Application
 from .constants import (
+    BUS_NAME,
     DEVICE_NAME,
     ADV_PATH,
     AGENT_IFACE,
@@ -65,7 +70,9 @@ def main() -> None:
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus = dbus.SystemBus()
 
-    adapter_path = find_adapter(bus, required_ifaces=[GATT_MGR_IFACE, LE_ADVERTISING_MGR_IFACE])
+    adapter_path = find_adapter(
+        bus, required_ifaces=[GATT_MGR_IFACE, LE_ADVERTISING_MGR_IFACE]
+    )
     print(f"[BlueZ] Using adapter: {adapter_path}")
 
     set_adapter_property(bus, adapter_path, "Powered", dbus.Boolean(True))
@@ -92,6 +99,7 @@ def main() -> None:
     hid_service = HIDService(bus, 0, APP_PATH)
     battery_service = BatteryService(bus, 1, APP_PATH)
     device_info_service = DeviceInfoService(bus, 2, APP_PATH)
+    _api = ApiService(bus, hid_service)
 
     app.add_service(hid_service)
     app.add_service(battery_service)
@@ -101,7 +109,11 @@ def main() -> None:
     # TODO Have to remove? It dosen't need anymore
     # adv.local_name = "Pi5 BLE HID"
     # adv.appearance = 0x03C0
-    adv.service_uuids = [UUID_HID_SERVICE, UUID_BATTERY_SERVICE, UUID_DEVICE_INFO_SERVICE]
+    adv.service_uuids = [
+        UUID_HID_SERVICE,
+        UUID_BATTERY_SERVICE,
+        UUID_DEVICE_INFO_SERVICE,
+    ]
 
     service_manager.RegisterApplication(
         app.get_path(),

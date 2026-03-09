@@ -79,13 +79,12 @@ class KeyboardInputReportCharacteristic(Characteristic):
 
     def __init__(self, bus: dbus.Bus, index: int, service: Service):
         super().__init__(bus, index, UUID_REPORT, ["read", "notify"], service)
-        self.value = bytes([self.REPORT_ID, 0x00, 0x00, 0, 0, 0, 0, 0, 0])
+        self.value = bytes([0x00, 0x00, 0, 0, 0, 0, 0, 0])
         self.add_descriptor(ReportReferenceDescriptor(bus, 0, self, self.REPORT_ID, REPORT_TYPE_INPUT))
 
     def send_keys(self, modifiers: int = 0, keys: list[int] | None = None) -> None:
         keys = keys or []
         keys = keys[:6] + [0] * (6 - len(keys))
-        # report = bytes([self.REPORT_ID, modifiers & 0xFF, 0x00] + keys)
         report = bytes([modifiers & 0xFF, 0x00] + keys)
         self.set_value(report, notify=True)
         print(f"[HID] Keyboard report sent: {report.hex()}")
@@ -123,7 +122,7 @@ class MouseInputReportCharacteristic(Characteristic):
 
     def __init__(self, bus: dbus.Bus, index: int, service: Service):
         super().__init__(bus, index, UUID_REPORT, ["read", "notify"], service)
-        self.value = bytes([self.REPORT_ID, 0x00, 0x00, 0x00, 0x00])
+        self.value = bytes([0x00, 0x00, 0x00, 0x00])
         self.add_descriptor(ReportReferenceDescriptor(bus, 0, self, self.REPORT_ID, REPORT_TYPE_INPUT))
 
     @staticmethod
@@ -132,7 +131,7 @@ class MouseInputReportCharacteristic(Characteristic):
         return v & 0xFF
 
     def send_mouse(self, buttons: int = 0, dx: int = 0, dy: int = 0, wheel: int = 0) -> None:
-        report = bytes([self.REPORT_ID, buttons & 0x07, self._s8(dx), self._s8(dy), self._s8(wheel)])
+        report = bytes([buttons & 0x07, self._s8(dx), self._s8(dy), self._s8(wheel)])
         self.set_value(report, notify=True)
         print(f"[HID] Mouse report sent: {report}")
 

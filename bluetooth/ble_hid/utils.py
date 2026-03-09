@@ -13,6 +13,8 @@ def to_dbus_byte_array(data: bytes) -> dbus.Array:
     return dbus.Array([dbus.Byte(b) for b in data], signature="y")
 
 
+# TODO Optimization
+
 def find_adapter(bus: dbus.Bus, required_ifaces: Optional[list[str]] = None) -> str:
     """Return /org/bluez/hciX path that exposes all required interfaces."""
     required_ifaces = required_ifaces or []
