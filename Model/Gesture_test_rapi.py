@@ -133,12 +133,17 @@ def draw_landmarks_on_image(rgb_image, detection_result):
         hand_side = hand_side * 100
 
         # 랜드마크 시각화
-        mp_drawing.draw_landmarks(
-            annotated_image,
-            hand_landmarks,
-            mp_hands.HAND_CONNECTIONS,
-            mp_drawing_styles.get_default_hand_landmarks_style(),
-            mp_drawing_styles.get_default_hand_connections_style())
+        h, w, _ = annotated_image.shape
+        for connection in mp.solutions.hands.HAND_CONNECTIONS:
+            start = hand_landmarks[connection[0]]
+            end   = hand_landmarks[connection[1]]
+            x0, y0 = int(start.x * w), int(start.y * h)
+            x1, y1 = int(end.x * w),   int(end.y * h)
+            cv2.line(annotated_image, (x0, y0), (x1, y1), (0, 255, 0), 2)
+
+        for lm in hand_landmarks:
+            cx, cy = int(lm.x * w), int(lm.y * h)
+            cv2.circle(annotated_image, (cx, cy), 5, (255, 0, 0), -1)
 
         # 제스처 판정을 위한 각도 계산 (핵심 로직 추가)
         joint = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks])
