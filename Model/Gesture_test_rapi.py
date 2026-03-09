@@ -22,13 +22,11 @@ label_data = file[:, -1].astype(np.float32)
 knn = cv2.ml.KNearest_create()
 knn.train(angle_data, cv2.ml.ROW_SAMPLE, label_data)
 
-# 제스처 라벨 정의 (본인의 데이터셋에 맞게 수정 가능)
 gesture_names = { i : chr(i) for i in range(ord('a'),ord('z')+1) } # a ~ z까지 제스쳐라벨 설정 
 
-# --- 2. MediaPipe 설정 및 유틸리티 ---
 mp_hands = mp.tasks.vision.HandLandmarksConnections
-mp_drawing = mp.tasks.vision.drawing_utils
-mp_drawing_styles = mp.tasks.vision.drawing_styles
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
 # 옵션들
 MAX_HAND = 1
@@ -317,7 +315,7 @@ def Start():
             display_image = frame
 
         img_put_text(display_image)
-        cv2.imshow("Hand Gesture Recognition", display_image)
+        #cv2.imshow("Hand Gesture Recognition", display_image)
 
         if exit_program:
             break
