@@ -31,8 +31,6 @@ class TimeManager: # 타이머 클래스
             return True
         return False
 
-tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
-
 class GestureModel:
     """KNN 모델 학습 및 추론 담당 (AI 로직)"""
     
@@ -306,6 +304,7 @@ class GestureApp:
         # 키보드 리스너 시작
         listener = keyboard.Listener(on_press=self.on_press)
         listener.start()
+        tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
 
         while self.cap.isOpened() and not self.exit_program:
             ret, frame = self.cap.read()
@@ -326,8 +325,10 @@ class GestureApp:
                 display_image = frame
 
             self.img_put_text(display_image)
+            
             if tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
-                self.read_data()
+                print(self.read_data())
+                
             cv2.imshow("Hand App", display_image)
 
             cv2.waitKey(1)
