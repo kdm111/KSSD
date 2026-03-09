@@ -1,0 +1,47 @@
+"""Project-wide constants for D-Bus / BlueZ / HID UUIDs."""
+
+DEVICE_NAME = "GCC-hid"
+GENERIC_HID_DEVICE_APPR = 0x03C0
+
+BLUEZ_SERVICE_NAME = "org.bluez"
+
+DBUS_OM_IFACE = "org.freedesktop.DBus.ObjectManager"
+DBUS_PROP_IFACE = "org.freedesktop.DBus.Properties"
+
+ADAPTER_IFACE = "org.bluez.Adapter1"
+AGENT_MGR_IFACE = "org.bluez.AgentManager1"
+GATT_MGR_IFACE = "org.bluez.GattManager1"
+LE_ADVERTISING_MGR_IFACE = "org.bluez.LEAdvertisingManager1"
+
+GATT_SERVICE_IFACE = "org.bluez.GattService1"
+GATT_CHRC_IFACE = "org.bluez.GattCharacteristic1"
+GATT_DESC_IFACE = "org.bluez.GattDescriptor1"
+LE_ADVERTISEMENT_IFACE = "org.bluez.LEAdvertisement1"
+AGENT_IFACE = "org.bluez.Agent1"
+
+MAIN_PATH = "/com/GCC"
+APP_PATH = f"{MAIN_PATH}/app"
+ADV_PATH = f"{MAIN_PATH}/advertisement0"
+AGENT_PATH = f"{MAIN_PATH}/agent0"
+
+UUID_HID_SERVICE = "1812"
+UUID_BATTERY_SERVICE = "180f"
+UUID_DEVICE_INFO_SERVICE = "180a"
+
+UUID_PROTOCOL_MODE = "2a4e"
+UUID_REPORT = "2a4d"
+UUID_REPORT_MAP = "2a4b"
+UUID_HID_INFORMATION = "2a4a"
+UUID_HID_CONTROL_POINT = "2a4c"
+
+UUID_BATTERY_LEVEL = "2a19"
+
+UUID_MANUFACTURER_NAME = "2a29"
+UUID_MODEL_NUMBER = "2a24"
+UUID_PNP_ID = "2a50"
+
+UUID_REPORT_REFERENCE_DESC = "2908"
+
+REPORT_TYPE_INPUT = 0x01
+REPORT_TYPE_OUTPUT = 0x02
+REPORT_TYPE_FEATURE = 0x03
