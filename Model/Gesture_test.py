@@ -8,6 +8,8 @@ import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput import keyboard
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 # csv파일 경로설정
 csv_file = "data_test.csv"
@@ -16,11 +18,14 @@ f = open(csv_file, "a", newline="")
 writer = csv.writer(f)
 
 # --- 1. KNN 모델 로드 및 학습 ---
-file = np.genfromtxt(csv_file, delimiter=',')
-angle_data = file[:, :-1].astype(np.float32)
-label_data = file[:, -1].astype(np.float32)
-knn = cv2.ml.KNearest_create()
-knn.train(angle_data, cv2.ml.ROW_SAMPLE, label_data)
+if os.path.exists(csv_file) and os.path.getsize(csv_file) > 0: 
+    file = np.genfromtxt(csv_file, delimiter=',')
+    angle_data = file[:, :-1].astype(np.float32)
+    label_data = file[:, -1].astype(np.float32)
+    knn = cv2.ml.KNearest_create()
+    knn.train(angle_data, cv2.ml.ROW_SAMPLE, label_data)
+else:
+    knn=None
 
 # 제스처 라벨 정의 (본인의 데이터셋에 맞게 수정 가능)
 gesture_names = { i : chr(i) for i in range(ord('a'),ord('z')+1) } # a ~ z까지 제스쳐라벨 설정 
@@ -35,7 +40,7 @@ MAX_HAND = 1
 MARGIN = 10
 FONT_SIZE = 1
 FONT_THICKNESS = 1
-HANDEDNESS_TEXT_COLOR = (88, 205, 54) # cv2에 보이는 라벨 색
+HANDEDNESS_TEXT_COLOR = (255, 0, 0) # cv2에 보이는 라벨 색
 output_interval = 2.0
 
 exit_program = False # 종료 플래그
@@ -54,6 +59,32 @@ class TimeManager: # 타이머 클래스
             self.last_times[name] = now # 시간 업데이트까지 한 번에
             return True
         return False
+
+def evaluate_model():
+    file = np.genfromtxt('data_test.csv', delimiter=',')
+    X = file[:, :-1].astype(np.float32) # 특징값 (각도 등)
+    y = file[:, -1].astype(np.float32)  # 정답 (라벨)
+
+    # 2. 데이터 쪼개기 (random_state를 주면 매번 똑같이 섞여서 비교하기 좋습니다)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # 3. KNN 학습 (학습용 데이터만 사용!)
+    knn = cv2.ml.KNearest_create()
+    knn.train(X_train, cv2.ml.ROW_SAMPLE, y_train)
+
+    # 4. 모델에게 시험 문제 내기 (테스트용 데이터 사용)
+    # k=3은 주변 이웃 3개를 보고 판단하라는 뜻
+    ret, results, neighbours, dist = knn.findNearest(X_test, k=3)
+    
+    # 5. 채점 (실제 정답 y_test와 모델의 답 results 비교)
+    predicted_labels = results.flatten()
+    final_score = accuracy_score(y_test, predicted_labels)
+
+    print(f"--- 모델 성능 평가 ---")
+    print(f"전체 데이터 개수: {len(X)}")
+    print(f"학습 데이터 개수: {len(X_train)}")
+    print(f"테스트 데이터 개수: {len(X_test)}")
+    print(f"최종 검증 정확도: {final_score * 100:.2f}%")
 
 def reload_Knn(): # KNN 재갱신
     global angle_data,label_data,knn
@@ -106,18 +137,22 @@ def on_press(key): # 키가 눌렸을때 이벤트 리스너너
                     # 작업 완료 후 초기화
                     update_count = 0
                     old_chr = None
+
             
-            if not any(flag.values()): # True값이 하나도 없을경우만 동작작
+            if not any(flag.values()): # True값이 하나도 없을경우만 동작
                 if key.char == 'i' :
                     flag["press_i"] = True
                     print("insert_mode 설정")
-                if key.char == 'd' :
-                    flag["press_d"] = True
-                    print("delete_mode 설정")
-                if key.char == 'u':
-                    flag["press_u"] = True
-                    print("update_mode 설정")
-            
+                if knn is not None:
+                    if key.char == 'd' :
+                        flag["press_d"] = True
+                        print("delete_mode 설정")
+                    elif key.char == 'u':
+                        flag["press_u"] = True
+                        print("update_mode 설정")
+                    elif key.char == 'q': # 임시
+                        evaluate_model()
+    
     except AttributeError:
         print(f'{key} 특수키 눌림')
 
@@ -133,9 +168,12 @@ listener.start() # 키보드 입력 함수 적용
 
 insert_new_data = [] # 손의 랜드마크를 읽어서 리스트에 저장 (save용)
 
+insert_signal = '' # 가장 최근에 손으로 인식하였을 때 나오는 문자
+confidence = 0
+
 # [함수] 랜드마크 및 정보를 이미지 위에 그리기
 def draw_landmarks_on_image(rgb_image, detection_result):
-    global insert_new_data
+    global insert_new_data, insert_signal, confidence
     insert_new_data = []
     hand_landmarks_list = detection_result.hand_landmarks
     handedness_list = detection_result.handedness
@@ -179,29 +217,28 @@ def draw_landmarks_on_image(rgb_image, detection_result):
             v[[1,2,3,5,6,7,9,10,11,13,14,15,17,18,19],:])) 
         angle = np.degrees(angle) # Convert radian to degree
         full_data = np.append(angle, hand_side)
-        # KNN 추론
-        data = np.array([full_data], dtype=np.float32)
-        ret, results, neighbours, dist = knn.findNearest(data, 3)
 
+        threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
+        display_text = ""
+        # KNN 추론
+        if knn is not None:
+            data = np.array([full_data], dtype=np.float32)
+            ret, results, neighbours, dist = knn.findNearest(data, 3)
+            idx = int(results[0][0])
+
+            if dist[0][0] < threshold:
+                if idx in gesture_names:
+                    display_text += f"{gesture_names[idx]}"
         
-        idx = int(results[0][0])
         # 텍스트 위치 선정 (바운딩 박스 상단)
         height, width, _ = annotated_image.shape
         x_coords = [landmark.x for landmark in hand_landmarks]
         y_coords = [landmark.y for landmark in hand_landmarks]
         text_x = int(min(x_coords) * width)
         text_y = int(min(y_coords) * height) - MARGIN
-        
-        threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
-        display_text = ""
 
-        if dist[0][0] < threshold:
-            if idx in gesture_names:
-                display_text += f"{gesture_names[idx]}"
-        
-        if tm.is_time_up('output', output_interval) and len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
+        if len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
             insert_signal = display_text
-            read_data(insert_signal)
 
         insert_new_data = full_data
         
@@ -289,10 +326,14 @@ options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=MAX_
 detector = vision.HandLandmarker.create_from_options(options)
 
 cap = cv2.VideoCapture(0) # 처음 연결된 비디오 확인
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640) #일단 사이즈조절
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
 
 def Start():
+    global insert_signal, output_interval
+
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret: break 
@@ -312,6 +353,9 @@ def Start():
             display_image = frame
 
         img_put_text(display_image)
+        if tm.is_time_up('output', output_interval) and len(insert_signal) > 0:
+            read_data(insert_signal)
+
         cv2.imshow("Hand Gesture Recognition", display_image)
 
         if exit_program:
