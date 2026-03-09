@@ -1,6 +1,7 @@
 import mediapipe as mp
 import cv2
 import numpy as np
+import pandas as pd
 import csv
 import os
 import time
@@ -13,7 +14,6 @@ csv_file = "data_test.csv"
 
 f = open(csv_file, "a", newline="")
 writer = csv.writer(f)
-
 
 # --- 1. KNN 모델 로드 및 학습 ---
 file = np.genfromtxt(csv_file, delimiter=',')
@@ -35,13 +35,11 @@ MAX_HAND = 1
 MARGIN = 10
 FONT_SIZE = 1
 FONT_THICKNESS = 1
-HANDEDNESS_TEXT_COLOR = (88, 205, 54)
+HANDEDNESS_TEXT_COLOR = (88, 205, 54) # cv2에 보이는 라벨 색
 output_interval = 2.0
-press_i_interval = 3.0
-
 
 exit_program = False # 종료 플래그
-flag ={"press_i" : False, "press_d" : False}
+flag ={"press_i" : False, "press_d" : False, "press_u": False} # insert, delete, update
 
 class TimeManager: # 타이머 클래스
     def __init__(self):
@@ -57,7 +55,7 @@ class TimeManager: # 타이머 클래스
             return True
         return False
 
-def reload_Knn():
+def reload_Knn(): # KNN 재갱신
     global angle_data,label_data,knn
     new_file = np.genfromtxt(csv_file, delimiter=',')
     angle_data = new_file[:, :-1].astype(np.float32)
@@ -65,49 +63,75 @@ def reload_Knn():
     knn = cv2.ml.KNearest_create()
     knn.train(angle_data, cv2.ml.ROW_SAMPLE, label_data)
 
-def on_press(key):
-    global flag, exit_program
+saved_count = 0 # save가 된 횟수
+update_count = 0 # 업데이트 변수 0 -> 아무것도 입력 x, 1 -> old_chr는 이미 받음음
+old_chr = ''
+
+def on_press(key): # 키가 눌렸을때 이벤트 리스너너
+    global flag, exit_program, saved_count, update_count, old_chr
     
     try:
         if hasattr(key, 'char'): # key 객체가 char 속성을 가지고있는지 확인
             c = key.char
-
-            if flag["press_i"]: 
-                if ord(c) in gesture_names:
-                    (c) # 저장 함수 호출
-
-            if  key.char == 'i' and not flag["press_i"]:
-                flag["press_i"]=True
-                print("insert_mode 설정")
 
             if  key.char == '-': # -를 누르면
                 if any(flag.values()): # true가 있다면 
                     for k, v in flag.items():
                         if v == True:
                             flag[k] = False # True인 경우에만 False로 변경
-                    f.flush()
-                    os.fsync(f.fileno())
-                    reload_Knn()
-                    print(">>> 모든 데이터가 CSV 파일에 안전하게 저장되었습니다.")
+                    if saved_count>0:
+                        f.flush()
+                        os.fsync(f.fileno())
+                        reload_Knn()
+                        print(">>> 모든 데이터가 CSV 파일에 안전하게 저장되었습니다.")
+                        saved_count = 0
 
-        elif key == keyboard.Key.esc:
-            exit_program = True
-            return False # Esc 누르면 리스너 종료
-
+            if flag["press_i"]: # i키를 눌렀을 경우
+                if ord(c) in gesture_names:
+                    insert_data(c) # 저장 함수 호출
+            elif flag["press_d"]: # d키를 눌렀을 경우
+                delete_data(c) # 삭제함수
+            elif flag["press_u"]: # u키를 눌렀을 경우
+                if update_count == 0:
+                    old_chr = c
+                    update_count = 1
+                    print(f"대상 라벨 {old_chr} 선택됨. 바꿀 라벨을 누르세요.")
+                elif update_count == 1:
+                    new_chr = c
+                    print(f"실행: {old_chr} -> {new_chr} 수정 중...")
+                    
+                    # 실제 데이터 수정 함수 호출
+                    update_data(old_chr, new_chr)
+                    
+                    # 작업 완료 후 초기화
+                    update_count = 0
+                    old_chr = None
+            
+            if not any(flag.values()): # True값이 하나도 없을경우만 동작작
+                if key.char == 'i' :
+                    flag["press_i"] = True
+                    print("insert_mode 설정")
+                if key.char == 'd' :
+                    flag["press_d"] = True
+                    print("delete_mode 설정")
+                if key.char == 'u':
+                    flag["press_u"] = True
+                    print("update_mode 설정")
+            
     except AttributeError:
         print(f'{key} 특수키 눌림')
 
-def on_release(key):
-    global press_i
-
-    # if hasattr(key, 'char') and key.char == 'i':
-    #         press_i=False
+def on_release(key): # 키를 땠을 때 이벤트 리스터터
+    global exit_program
+    if key == keyboard.Key.esc:
+        exit_program = True
+        return False # Esc 누르면 리스너 종료
 
 
 listener = keyboard.Listener(on_press=on_press, on_release=on_release)
 listener.start() # 키보드 입력 함수 적용
 
-insert_new_data = []
+insert_new_data = [] # 손의 랜드마크를 읽어서 리스트에 저장 (save용)
 
 # [함수] 랜드마크 및 정보를 이미지 위에 그리기
 def draw_landmarks_on_image(rgb_image, detection_result):
@@ -180,25 +204,89 @@ def draw_landmarks_on_image(rgb_image, detection_result):
             if idx in gesture_names:
                 display_text += f"{gesture_names[idx]}"
         
-        # if tm.is_time_up('output', output_interval) and len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
-        #     insert_signal = display_text
-            
+        if tm.is_time_up('output', output_interval) and len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
+            insert_signal = display_text
+            read_data(insert_signal)
+
         insert_new_data = full_data
+        
         cv2.putText(annotated_image, display_text, (text_x, text_y), 
                     cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
-
+        
     return annotated_image
 
-def insert_data(c):
+def insert_data(c): # 손으로 포즈를 취하고 입력하고싶은 데이터를 넣으면 입력됨
+    global saved_count
+
     if len(insert_new_data) == 0:
         return
-    
+
+    saved_count += 1
+
     data = np.append(insert_new_data, ord(c))
     
     # CSV 쓰기
     writer.writerow(data)
     print(f"데이터 저장됨: {c}")
-    
+
+def read_data(signal):
+    print(signal)
+
+def delete_data(c): # delete mode 키고 키보드로 라벨 입력하면 지워짐
+    global f, writer
+    f.close() # 기존에 열려있던 파일 닫고 작업 
+
+    df = pd.read_csv(csv_file, header=None)
+    if ord(c) in df.iloc[:, -1].values: # 만약 라벨이 없다면 
+        new_df = df[df.iloc[:, -1] != ord(c)] # 입력된 라벨 제외
+        new_df.to_csv(csv_file, index=False, header=False)
+        f = open(csv_file, mode='a', newline='')
+        writer = csv.writer(f)
+
+        reload_Knn() # 갱신
+        print(f"라벨 {c} 삭제 및 파일 갱신 완료!")
+
+def update_data(old, new) : # old -> new로 라벨 업데이트트
+    global f, writer
+    f.close() # 기존에 열려있던 파일 닫고 작업 
+
+    df = pd.read_csv(csv_file, header=None)
+    # 마지막 열(라벨 열) 선택
+    label_column = df.columns[-1]
+
+    # 2. 존재 여부 확인 후 수정
+    if ord(old) in df[label_column].values:
+        # old_label인 행들을 찾아서 new_label로 교체
+        df.loc[df[label_column] == ord(old), label_column] = ord(new)
+        
+        # 3. 덮어쓰기 저장
+        df.to_csv(csv_file, index=False, header=False)
+        print(f"라벨 수정 완료: {old} -> {new}")
+
+        f = open(csv_file, mode='a', newline='')
+        writer = csv.writer(f)
+        # 모델 갱신
+        reload_Knn()
+
+def img_put_text(Image):
+    Mode = ""
+    if flag["press_i"]:
+        Mode = "InsertMode"
+    elif flag["press_d"]:
+        Mode = "DeleteMode"
+    elif flag["press_u"]:
+        Mode = "UpdateMode"
+        
+    cv2.putText(
+            Image, 
+            Mode,
+            (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX, 
+            FONT_SIZE, 
+            (0, 0, 255), # 빨간색
+            FONT_THICKNESS, 
+            cv2.LINE_AA
+        )
 
 # --- 3. 실행 엔진 초기화 ---
 base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
@@ -209,33 +297,38 @@ cap = cv2.VideoCapture(0) # 처음 연결된 비디오 확인
 
 tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
 
+def Start():
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break 
 
+        frame = cv2.flip(frame, 1) # 좌우반전
+        cvt_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image = mp.Image(mp.ImageFormat.SRGB, cvt_frame)
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret: break 
+        # 손 탐지
+        detection_result = detector.detect(image)
 
-    frame = cv2.flip(frame, 1) # 좌우반전
-    cvt_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image = mp.Image(mp.ImageFormat.SRGB, cvt_frame)
+        if detection_result.hand_landmarks:
+            # 랜드마크와 제스처를 모두 포함한 이미지 생성  
+            annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
+            display_image = cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR)
+        else: # 손이 없을때 일반 화면 출력
+            display_image = frame
 
-    # 손 탐지
-    detection_result = detector.detect(image)
+        img_put_text(display_image)
+        cv2.imshow("Hand Gesture Recognition", display_image)
 
-    annotated_image = draw_landmarks_on_image(image.numpy_view(), detection_result)
-    if detection_result.hand_landmarks:
-        # 랜드마크와 제스처를 모두 포함한 이미지 생성  
-        cv2.imshow("Hand Gesture Recognition", cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
-    else: # 손이 없을때 일반 화면 출력
-        cv2.imshow("Hand Gesture Recognition", frame)
+        if exit_program:
+            break
 
-    if exit_program:
-        break
+        cv2.waitKey(1)
 
-    cv2.waitKey(1)
+    # 마무리작업
+    detector.close()
+    cap.release()
+    cv2.destroyAllWindows()
+    f.close()
 
-# 마무리작업
-detector.close()
-cap.release()
-cv2.destroyAllWindows()
-f.close()
+if __name__ == "__main__":
+    Start()
