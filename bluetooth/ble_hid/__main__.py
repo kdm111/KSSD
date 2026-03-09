@@ -116,8 +116,9 @@ def main() -> None:
         error_handler=register_ad_error_cb,
     )
 
-    demo = DemoInputDriver(hid_service)
-    GLib.timeout_add_seconds(3, demo.tick)
+    # TODO Delete
+    # demo = DemoInputDriver(hid_service)
+    # GLib.timeout_add_seconds(1, demo.tick)
 
     def handle_signal(_sig, _frame) -> None:
         print("\n[Main] Caught signal, cleaning up...")
