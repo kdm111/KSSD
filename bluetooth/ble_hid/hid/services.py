@@ -75,6 +75,7 @@ class HIDControlPointCharacteristic(Characteristic):
 
 class KeyboardInputReportCharacteristic(Characteristic):
     REPORT_ID = 0x01
+    # REPORT_ID = 0xA1
 
     def __init__(self, bus: dbus.Bus, index: int, service: Service):
         super().__init__(bus, index, UUID_REPORT, ["read", "notify"], service)
@@ -84,9 +85,10 @@ class KeyboardInputReportCharacteristic(Characteristic):
     def send_keys(self, modifiers: int = 0, keys: list[int] | None = None) -> None:
         keys = keys or []
         keys = keys[:6] + [0] * (6 - len(keys))
-        report = bytes([self.REPORT_ID, modifiers & 0xFF, 0x00] + keys)
+        # report = bytes([self.REPORT_ID, modifiers & 0xFF, 0x00] + keys)
+        report = bytes([modifiers & 0xFF, 0x00] + keys)
         self.set_value(report, notify=True)
-        print(f"[HID] Keyboard report sent: {list(report)}")
+        print(f"[HID] Keyboard report sent: {report.hex()}")
 
     def release_all(self) -> None:
         self.send_keys(0, [])
@@ -132,7 +134,7 @@ class MouseInputReportCharacteristic(Characteristic):
     def send_mouse(self, buttons: int = 0, dx: int = 0, dy: int = 0, wheel: int = 0) -> None:
         report = bytes([self.REPORT_ID, buttons & 0x07, self._s8(dx), self._s8(dy), self._s8(wheel)])
         self.set_value(report, notify=True)
-        print(f"[HID] Mouse report sent: {list(report)}")
+        print(f"[HID] Mouse report sent: {report}")
 
     def release_buttons(self) -> None:
         self.send_mouse(buttons=0, dx=0, dy=0, wheel=0)

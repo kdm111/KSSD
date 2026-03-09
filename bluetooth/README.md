@@ -23,3 +23,16 @@ sudo python3 -m ble_hid.main
 ## Notes
 
 This is a strong skeleton, not a final production implementation. You will likely need host-specific interoperability tuning for macOS / iPadOS / Windows.
+
+
+# ** 중요!!!!!!!!!!!! **
+
+```shell
+
+bluetoothctl #이걸로 기존 디바이스 싹 다 remove!!
+
+```
+
+
+device 는 event5, 6 : 아마 keyboard?..
+mouse0는 마우스
