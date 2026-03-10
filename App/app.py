@@ -38,10 +38,10 @@ def get_gesture():
 
 if __name__ == '__main__':
 
+    db.connect()
+
     cap = Cap(0)
 
-    db.connect()
-    
     data_path = os.path.join("Model", "data_test.csv")
     gesture_app = GestureApp(data_path, cap)
 

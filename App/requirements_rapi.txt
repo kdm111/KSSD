@@ -42,6 +42,7 @@ jax==0.6.2
 jaxlib==0.6.2
 jedi==0.19.2
 Jinja2==3.1.6
+joblib==1.5.3
 json5==0.13.0
 jsonpointer==3.0.0
 jsonschema==4.26.0
@@ -70,7 +71,7 @@ ml_dtypes==0.5.4
 nbclient==0.10.4
 nbconvert==7.17.0
 nbformat==5.10.4
-nest-asyncio==1.6.0
+nest_asyncio==1.6.0
 notebook==7.5.4
 notebook_shim==0.2.4
 numpy==1.26.4
@@ -78,10 +79,11 @@ opencv-contrib-python==4.8.1.78
 opencv-python==4.8.1.78
 opt_einsum==3.4.0
 overrides==7.7.0
-packaging @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_packaging_1769093650/work
+packaging @ file:///home/task_176104879157968/conda-bld/packaging_1761049080585/work
 pandas==2.3.3
 pandocfilters==1.5.1
 parso==0.8.6
+peewee==4.0.1
 pexpect==4.9.0
 pillow==12.1.1
 platformdirs==4.9.4
@@ -107,6 +109,7 @@ rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
 rfc3987-syntax==1.1.0
 rpds-py==0.30.0
+scikit-learn==1.7.2
 scipy==1.15.3
 Send2Trash==2.1.0
 sentencepiece==0.2.1
@@ -115,6 +118,7 @@ sounddevice==0.5.5
 soupsieve==2.8.3
 stack-data==0.6.3
 terminado==0.18.1
+threadpoolctl==3.6.0
 tinycss2==1.4.0
 tomli==2.4.0
 tornado==6.5.4

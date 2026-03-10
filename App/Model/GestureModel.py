@@ -5,6 +5,7 @@ import pandas as pd
 import csv
 import os
 import time
+import platform
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput import keyboard
@@ -27,8 +28,13 @@ class GestureModel:
         self.reload()
         # --- 2. MediaPipe 설정 및 유틸리티 ---
         self.mp_hands = mp.tasks.vision.HandLandmarksConnections
-        self.mp_drawing = mp.tasks.vision.drawing_utils
-        self.mp_drawing_styles = mp.tasks.vision.drawing_styles
+        
+        if hasattr(mp.tasks.vision, 'drawing_utils'):
+            self.mp_drawing = mp.tasks.vision.drawing_utils
+            self.mp_drawing_styles = mp.tasks.vision.drawing_styles
+        else:
+            self.mp_drawing = mp.solutions.drawing_utils
+            self.mp_drawing_styles = mp.solutions.drawing_styles
 
         
         hand_landmarker_path = os.path.join(BASE_DIR, 'hand_landmarker.task')
@@ -60,12 +66,31 @@ class GestureModel:
             hand_side = hand_side * 100
 
             # 랜드마크 시각화
-            self.mp_drawing.draw_landmarks(
-                annotated_image,
-                hand_landmarks,
-                self.mp_hands.HAND_CONNECTIONS,
-                self.mp_drawing_styles.get_default_hand_landmarks_style(),
-                self.mp_drawing_styles.get_default_hand_connections_style())
+            if hasattr(mp.tasks.vision, 'drawing_utils'):
+                self.mp_drawing.draw_landmarks(
+                    annotated_image,
+                    hand_landmarks,
+                    self.mp_hands.HAND_CONNECTIONS,
+                    self.mp_drawing_styles.get_default_hand_landmarks_style(),
+                    self.mp_drawing_styles.get_default_hand_connections_style()
+                )
+            else:
+                # Raspberry Pi - solutions API (NormalizedLandmarkList ȯ ʿ)
+                from mediapipe.framework.formats import landmark_pb2
+                
+                hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+                hand_landmarks_proto.landmark.extend([
+                    landmark_pb2.NormalizedLandmark(x=lm.x, y=lm.y, z=lm.z)
+                    for lm in hand_landmarks
+                ])
+                
+                self.mp_drawing.draw_landmarks(
+                    annotated_image,
+                    hand_landmarks_proto,
+                    mp.solutions.hands.HAND_CONNECTIONS,
+                    self.mp_drawing_styles.get_default_hand_landmarks_style(),
+                    self.mp_drawing_styles.get_default_hand_connections_style()
+                )
 
             # 제스처 판정을 위한 각도 계산 (핵심 로직 추가)
             joint = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks])
