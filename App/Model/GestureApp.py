@@ -8,7 +8,7 @@ import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput import keyboard
-
+from gcc import Keyboard
 from DB import insert_log
 
 from .GestureModel import GestureModel
@@ -197,6 +197,7 @@ class GestureApp:
             if prev != current_result and tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
                 prev = current_result
                 insert_log(current_result)
+                Keyboard.press_key(current_result)
 
             self.img_put_text(display_image)
             self.cap.set_display_frame(display_image)
