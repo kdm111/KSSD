@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     cap = Cap(0)
 
-    data_path = os.path.join("Model", "data_test.csv")
+    data_path = "data_test.csv"
     gesture_app = GestureApp(data_path, cap)
 
     t1 = Thread(target=gesture_app.run, daemon=True)
