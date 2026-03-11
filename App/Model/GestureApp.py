@@ -22,6 +22,13 @@ class GestureApp:
     ''' 카메라, 키보드 리스너, 전체 흐름 제어 (엔진) '''
 
     def __init__(self, csv_path, cap):
+        base_dir = os.getcwd() # 현재 터미널이 열려있는 위치
+        base_dir = os.path.join(base_dir,"Model")
+        csv_path = os.path.join(base_dir,csv_path)
+        if not os.path.exists(csv_path):
+            with open(csv_path, 'w', encoding='utf-8') as f:
+                pass
+
         self.csv_path = csv_path
         self.model = GestureModel(csv_path)
         #self.cap = cv2.VideoCapture(0)
