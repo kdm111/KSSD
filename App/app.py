@@ -35,6 +35,24 @@ def video_feed():
 def get_gesture():
     return jsonify({'gesture': gesture_app.read_data()})
 
+@app.route('/api/set_flags', methods=['POST'])
+def set_flags():
+    data = request.get_json()
+    action = data.get('action') # 'i', 'd', 'u', 'reset' 중 하나
+    
+    # 모든 플래그 초기화 함수 (GestureApp 내부에 있다고 가정하거나 직접 구현)
+    if action == 'reset':
+        gesture_app.flags['i'] = False
+        gesture_app.flags['d'] = False
+        gesture_app.flags['u'] = False
+        mode_name = "STANDBY"
+    else:
+        # 선택한 플래그만 True로 만들고 나머지는 False (배타적 선택)
+        for key in ['i', 'd', 'u']:
+            gesture_app.flags[key] = (key == action)
+        mode_name = action.upper()
+
+    return jsonify({'status': 'success', 'active_mode': mode_name})
 
 if __name__ == '__main__':
 

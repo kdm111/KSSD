@@ -121,22 +121,22 @@ class GestureApp:
                         print(f"실행: {self.old_chr} -> {new_chr} 수정 중...")
                         
                         # 실제 데이터 수정 함수 호출
-                        self.update_data(ord(self.old_chr), ord(new_chr))
+                        self.update_data(self.old_chr, new_chr)
 
-                # 모드 전환
-                if c in self.flags and not any(self.flags.values()): # true가 없다면
-                    if c == 'i' :
-                        self.flags["i"] = True
-                        print("insert_mode 설정")
-                    if self.model.knn is not None:
-                        if c == 'd' :
-                            self.flags["d"] = True
-                            print("delete_mode 설정")
-                        elif c == 'u':
-                            self.flags["u"] = True
-                            print("update_mode 설정")
-                        elif c == 'q': # 임시
-                            self.model.evaluate()
+                # # 모드 전환
+                # if c in self.flags and not any(self.flags.values()): # true가 없다면
+                #     if c == 'i' :
+                #         self.flags["i"] = True
+                #         print("insert_mode 설정")
+                #     if self.model.knn is not None:
+                #         if c == 'd' :
+                #             self.flags["d"] = True
+                #             print("delete_mode 설정")
+                #         elif c == 'u':
+                #             self.flags["u"] = True
+                #             print("update_mode 설정")
+                #         elif c == 'q': # 임시
+                #             self.model.evaluate()
                 
             if key == keyboard.Key.esc:
                 self.exit_program = True

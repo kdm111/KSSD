@@ -229,6 +229,12 @@
       .side { flex-direction: row; flex-wrap: wrap; }
       .side .card { flex: 1 1 200px; }
     }
+
+    #modeReset:hover {
+      background: rgba(255, 61, 90, 0.2) !important;
+      box-shadow: 0 0 15px rgba(255, 61, 90, 0.4) !important;
+      color: #fff !important;
+    }
   </style>
 </head>
 <body>
@@ -266,18 +272,23 @@
       </div>
 
       <!-- MODE -->
-      <div class="card">
-        <div class="card-title">// ACTIVE MODE</div>
+      <!-- Button -->
+      <div class="card" style="position: relative; z-index: 10;"> <div class="card-title">// SYSTEM FLAGS</div>
         <div class="modes">
-          <div class="mode-btn" id="modeI"><span class="mode-key">I</span>INSERT</div>
-          <div class="mode-btn" id="modeD"><span class="mode-key">D</span>DELETE</div>
-          <div class="mode-btn" id="modeU"><span class="mode-key">U</span>UPDATE</div>
+          <div class="mode-btn" id="modeI" style="cursor:pointer; pointer-events: auto;">
+            <span class="mode-key">I</span>INSERT
+          </div>
+          <div class="mode-btn" id="modeD" style="cursor:pointer; pointer-events: auto;">
+            <span class="mode-key">D</span>DELETE
+          </div>
+          <div class="mode-btn" id="modeU" style="cursor:pointer; pointer-events: auto;">
+            <span class="mode-key">U</span>UPDATE
+          </div>
         </div>
-        <div style="margin-top:0.8rem; font-size:0.62rem; color:var(--dim); line-height:1.8;">
-          <div><span style="color:var(--text)">I</span> → Insert mode &nbsp; <span style="color:var(--text)">-</span> → Save &amp; exit</div>
-          <div><span style="color:var(--text)">D</span> → Delete label &nbsp; <span style="color:var(--text)">U</span> → Update label</div>
-          <div><span style="color:var(--text)">Q</span> → Evaluate model &nbsp; <span style="color:var(--text)">ESC</span> → Quit</div>
-        </div>
+        
+        <button id="modeReset" class="mode-btn" style="width: 100%; margin-top: 10px; cursor: pointer; border-color: var(--red); color: var(--red); background: rgba(255, 61, 90, 0.05);">
+          <span class="mode-key">-</span> RESET (STANDBY)
+        </button>
       </div>
 
       <!-- STATS -->
@@ -294,6 +305,8 @@
           </div>
         </div>
       </div>
+
+      
 
       <!-- LOG -->
       <div class="card">
@@ -394,6 +407,72 @@
       conn.className = 'badge err';
     }
   }, 100);
+
+  // flag를 조정하는 버튼 함수 
+  document.addEventListener('DOMContentLoaded', () => {
+  const modeControls = {
+    'modeI': 'i',
+    'modeD': 'd',
+    'modeU': 'u',
+    'modeReset': 'reset'
+  };
+
+  Object.keys(modeControls).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.onclick = async function() { // addEventListener 대신 직접 할당
+        const action = modeControls[id];
+        console.log("클릭됨:", action); 
+
+        try {
+          const res = await fetch('/api/set_flags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action })
+          });
+          
+          if (!res.ok) throw new Error(`서버 응답 에러: ${res.status}`);
+
+          const data = await res.json();
+          if (data.status === 'success') {
+            // 버튼 불빛 업데이트
+            updateUI(data.active_mode);
+
+            if (data.active_mode === 'STANDBY') {
+              addLog('RESET', 'FLAG_RESET'); // 리셋일 때 출력할 메시지
+            } else {
+              addLog(data.active_mode, 'FLAG_SET');
+            }
+          }
+        } catch (e) {
+          console.error("통신 실패:", e);
+          alert("서 r버와 통신할 수 없습니다: " + e.message);
+        }
+      };
+    } else {
+      console.error(`버튼을 찾을 수 없음: ${id}`);
+    }
+  });
+
+  function updateUI(mode) {
+    // 모든 불빛 끄기
+    ['modeI', 'modeD', 'modeU'].forEach(id => {
+      const btn = document.getElementById(id);
+      btn.classList.remove('active-i', 'active-d', 'active-u');
+    });
+
+    // 상단 배지 업데이트
+    const badge = document.getElementById('modeBadge');
+    badge.textContent = (mode === 'STANDBY' ? 'STANDBY' : mode);
+    badge.className = 'badge' + (mode !== 'STANDBY' ? ' on' : '');
+
+    // 선택된 버튼 불빛 켜기
+    if (mode === 'I') document.getElementById('modeI').classList.add('active-i');
+    if (mode === 'D') document.getElementById('modeD').classList.add('active-d');
+    if (mode === 'U') document.getElementById('modeU').classList.add('active-u');
+  }
+});
+
 </script>
 </body>
 </html>
