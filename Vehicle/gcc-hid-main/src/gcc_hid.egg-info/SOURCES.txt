@@ -1,0 +1,11 @@
+pyproject.toml
+src/gcc/__init__.py
+src/gcc/constants.py
+src/gcc/exception.py
+src/gcc/gcc.py
+src/gcc/keyboard.py
+src/gcc_hid.egg-info/PKG-INFO
+src/gcc_hid.egg-info/SOURCES.txt
+src/gcc_hid.egg-info/dependency_links.txt
+src/gcc_hid.egg-info/requires.txt
+src/gcc_hid.egg-info/top_level.txt
