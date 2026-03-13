@@ -7,7 +7,7 @@ import termios
 
 # 모터 설정
 motor_left = Motor(forward=17, backward=27)
-motor_right = Motor(forward=24, backward=23)
+motor_right = Motor(forward=23, backward=24)
 
 # 현재 눌린 키를 저장할 세트
 pressed_keys = set()
@@ -54,14 +54,14 @@ try:
             # 1. 전진
             # for i in range(5, 15, 5):
             motor_left.forward()
-            motor_right.backward()
+            motor_right.forward()
             sleep(0.5) # 너무 길면 키 떼는 반응이 늦으므로 0.5초로 단축
             
         elif key=='s':
             # 2. 후진
             sleep(0.5)
             motor_left.backward()
-            motor_right.forward()
+            motor_right.backward()
             sleep(0.5)
             
         else:
