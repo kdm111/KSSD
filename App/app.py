@@ -42,9 +42,11 @@ def set_flags():
     
     # 모든 플래그 초기화 함수 (GestureApp 내부에 있다고 가정하거나 직접 구현)
     if action == 'reset':
+        gesture_app.flags["reset"] = True
         gesture_app.flags['i'] = False
         gesture_app.flags['d'] = False
         gesture_app.flags['u'] = False
+        
         mode_name = "STANDBY"
     else:
         # 선택한 플래그만 True로 만들고 나머지는 False (배타적 선택)
@@ -53,6 +55,24 @@ def set_flags():
         mode_name = action.upper()
 
     return jsonify({'status': 'success', 'active_mode': mode_name})
+
+@app.route('/api/set_action', methods=['POST'])
+def set_action():
+    data = request.get_json()
+    target_action = data.get('action')  # 예: 'FOR', 'BAK', 'STP' 등
+    # 1. 모든 동작 플래그를 False로 초기화 (배타적 선택)
+    for key in gesture_app.action_flags:
+        gesture_app.action_flags[key] = False
+
+    # 2. 클릭한 액션만 True로 변경
+    if target_action in gesture_app.action_flags:
+        gesture_app.action_flags[target_action] = True
+    # 3. 현재 전체 플래그 상태를 응답으로 보내주기
+    return jsonify({
+        'status': 'success', 
+        'active_action': target_action,
+        'all_flags': gesture_app.action_flags
+    })
 
 if __name__ == '__main__':
 
