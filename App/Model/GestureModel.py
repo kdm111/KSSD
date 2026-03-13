@@ -44,7 +44,7 @@ class GestureModel:
         self.current_label = ''
         self.action_length = 5 # 액션시퀀스를 몇개를 볼건지
         self.action_seq=[] # 모델이 예측한 라벨이 뭔지
-        self.action = ['L','R','S'] # 모델에서 나오는 라벨 이름
+        self.action = ['LFT','RIT'] # 모델에서 나오는 라벨 이름
 
     def draw_landmarks_on_image(self,rgb_image, detection_result, gesture_names):
         hand_landmarks_list = detection_result.hand_landmarks
@@ -147,10 +147,6 @@ class GestureModel:
             
             cv2.putText(annotated_image, display_text, (text_x, text_y), 
                         cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
-            
-            if self.current_label != "":
-                cv2.putText(annotated_image, f'{self.current_label}', (50, 50), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         return annotated_image
 
@@ -221,7 +217,6 @@ class GestureModel:
                 if len(self.action_seq) > self.action_length:
                     self.action_seq.pop(0)
 
-
                 if len(self.action_seq) == self.action_length:
                     most_common = max(set(self.action_seq), key=self.action_seq.count)
                     if self.action_seq.count(most_common) >= self.action_length-1 and most_common != -1:
@@ -229,7 +224,10 @@ class GestureModel:
                 else:
                     self.current_label = "" # 셋 중 하나라도 다르거나 확신 없으면 빈값
             finally:
+                if self.current_label != "":
+                    print(self.current_label)
                 self.is_predicting = False
+
 
     def reset_memory(self):
         self.sequence = []  # 기억 삭제

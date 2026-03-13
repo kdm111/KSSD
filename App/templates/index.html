@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GestDrive</title>
+  <title>GestureDrive</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
   <style>
     :root {
@@ -92,7 +92,7 @@
     .main {
       display: grid;
       grid-template-columns: 1fr 340px;
-      gap: 1.2rem;
+      gap: 0.8rem;
     }
 
     /* ── VIDEO PANEL ────────────────────── */
@@ -235,6 +235,60 @@
       box-shadow: 0 0 15px rgba(255, 61, 90, 0.4) !important;
       color: #fff !important;
     }
+
+    .action-bar {
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.5); /* 패널 배경 */
+    }
+
+    .label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #a0c4ff;
+      letter-spacing: 2px;
+    }
+
+    /* 2행 4열 그리드 설정 */
+    .action-grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr); /* 4열 동일 비율 */
+      grid-template-rows: repeat(2, 60px);   /* 2행 높이 지정 */
+      gap: 10px;                             /* 버튼 사이 간격 */
+      max-width: 600px;                      /* 너무 퍼지지 않게 너비 제한 */
+    }
+
+    /* 버튼 기본 스타일 확장 */
+    .action-btn {
+      background: rgba(10, 25, 40, 0.8);
+      border: 1px solid #1a3a4a;
+      color: #4da6ff;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+    }
+
+    /* 활성화(Active) 및 호버 효과 */
+    .action-btn:hover {
+      border-color: #00ffff;
+      background: rgba(0, 255, 255, 0.05);
+    }
+
+    .action-btn.active {
+      border-color: #00ffff;
+      color: #00ffff;
+      background: rgba(0, 255, 255, 0.15);
+      box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.2), 0 0 5px rgba(0, 255, 255, 0.5);
+    }
+
+    /* STOP 및 특수 버튼 색상 */
+    .action-btn.stop { color: #ff4d4d; border-color: #4a1a1a; }
+    .action-btn.stop.active { border-color: #ff0000; color: #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.4); }
   </style>
 </head>
 <body>
@@ -242,7 +296,7 @@
 
   <!-- HEADER -->
   <header>
-    <div class="logo">GEST<em>DRIVE</em></div>
+    <div class="logo">GESTURE<em>DRIVE</em></div>
     <div class="status-bar">
       <div class="badge" id="connBadge">● OFFLINE</div>
       <div class="badge" id="modeBadge">STANDBY</div>
@@ -259,8 +313,23 @@
       <div class="corner bl"></div>
       <div class="corner br"></div>
       <img src="/video_feed" alt="camera feed"/>
+      
+      <div class="action-bar">
+        <span class="label">SET ACTION</span>
+        <div class="action-grid-container">
+          <button class="action-btn active" onclick="sendAction('FOR')">FORWARD</button>
+          <!-- <button class="action-btn" onclick="sendAction('LFT')">LEFT</button> -->
+          <button class="action-btn stop" onclick="sendAction('STP')">STOP</button>
+          <!-- <button class="action-btn" onclick="sendAction('RIT')">RIGHT</button> -->
+          
+          <button class="action-btn" onclick="sendAction('BAK')">BACKWARD</button>
+          
+          <button class="action-btn" onclick="sendAction('FST')">SPEED (+)</button>
+          <button class="action-btn" onclick="sendAction('SLW')">SPEED (-)</button>
+          <button class="action-btn" onclick="sendAction('SPN')">SPIN</button>
+        </div>
+      </div>
     </div>
-
     <!-- SIDE -->
     <div class="side">
 
@@ -472,6 +541,40 @@
     if (mode === 'U') document.getElementById('modeU').classList.add('active-u');
   }
 });
+
+// action 함수
+async function sendAction(actionCode) {
+    // 클릭된 버튼 요소 가져오기
+    const btnElement = event.currentTarget;
+
+    try {
+        const response = await fetch('/api/set_action', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: actionCode })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            // 모든 액션 버튼의 'active' 클래스 제거 (불 끄기)
+            document.querySelectorAll('.action-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // 방금 누른 버튼만 'active' 클래스 추가 (불 켜기)
+            btnElement.classList.add('active');
+            
+            console.log("플래그 변경 성공:", result.flags);
+        } else {
+            alert("플래그 변경 실패: " + result.message);
+        }
+    } catch (error) {
+        console.error("네트워크 오류:", error);
+    }
+}
 
 </script>
 </body>
