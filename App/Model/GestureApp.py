@@ -9,7 +9,14 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput import keyboard
 # from gcc import Keyboard
+from DB import get_gesture_action
 from DB import insert_log
+from DB import insert_gesture_log
+from DB import delete_gesture_log
+from DB import update_gesture_log
+from DB import get_gesture_id
+from DB import check_gesture_exists
+from DB import get_gesture_all
 
 from .GestureModel import GestureModel
 from .TimeManager import TimeManager
@@ -35,22 +42,48 @@ class GestureApp:
         self.cap = cap
         self.file = None
 
-        # 상태 관리 변수 (C의 static 변수들)
-        self.flags = {"i": False, "d": False, "u": False}
+        # 상태 관리 변수 (C의 static 변수들)   
+        self.flags = {"i": False, "d": False, "u": False,"reset":False}
+        self.action_flags = {
+            # 기본동작 기본값 forward
+            'FOR' : True,
+            'BAK' : False,
+            # 'LFT' : False,
+            # 'RIT' : False,
+            'STP' : False,
+
+            # 속도 제어
+            'SLW' : False,
+            'FST' : False,
+            # 제자리 회전
+            'SPN' : False
+        }
         self.exit_program = False
-        self.gesture_names = {i: chr(i) for i in range(ord('a'), ord('z')+1)}
+        self.gesture_names = {}
+        self.load_gestures()
 
         self.saved_count = 0
         self.update_count=0
         self.old_chr = ''
         self.output_interval = 2.0
 
+    def load_gestures(self):
+        gestures = get_gesture_all()
+        self.gesture_names = {item.id: item.gesture for item in gestures}
+
     # insert
     def insert_data(self, label_chr):
         if len(self.model.insert_new_data) == 0: return
 
         self.saved_count+=1
-        data = np.append(self.model.insert_new_data,ord(label_chr))
+        if not check_gesture_exists(label_chr): # DB에 없다면 저장해라
+            action = next(k for k, v in self.action_flags.items() if v)
+            insert_gesture_log(label_chr,action)
+            self.load_gestures()
+
+        id = get_gesture_id(label_chr)
+        
+        data = np.append(self.model.insert_new_data, id)
         self.file = open(self.csv_path, "a", newline="") 
         writer = csv.writer(self.file)
         writer.writerow(data)
@@ -60,29 +93,31 @@ class GestureApp:
 
     # delete
     def delete_data(self, label_char):
+        id=get_gesture_id(label_char)
+        if check_gesture_exists(label_char): # DB에 있다면 삭제해라
+            delete_gesture_log(label_char)
+            self.load_gestures()
+        
         df = pd.read_csv(self.csv_path, header=None)
-        if ord(label_char) in df.iloc[:, -1].values: # 만약 라벨이 있다면
-            new_df = df[df.iloc[:, -1] != ord(label_char)] # 입력된 라벨 제외
+        if id in df.iloc[:, -1].values: # 만약 라벨이 있다면
+            new_df = df[df.iloc[:, -1] != id] # 입력된 라벨 제외
             new_df.to_csv(self.csv_path, index=False, header=False)
             self.model.reload() # 갱신
             print(f"라벨 {label_char} 삭제 및 파일 갱신 완료!")
 
     # update
     def update_data(self,old,new):
+        id = get_gesture_id(old)
+        
         df = pd.read_csv(self.csv_path, header=None)
         # 마지막 열(라벨 열) 선택
         label_column = df.columns[-1]
 
         # 2. 존재 여부 확인 후 수정
-        if ord(old) in df[label_column].values:
+        if id in df[label_column].values:
             # old_label인 행들을 찾아서 new_label로 교체
-            df.loc[df[label_column] == ord(old), label_column] = ord(new)
-            
-            # 3. 덮어쓰기 저장
-            df.to_csv(self.csv_path, index=False, header=False)
-            print(f"라벨 수정 완료: {old} -> {new}")
-            # 모델 갱신
-            self.model.reload()
+            update_gesture_log(old,new)
+            self.load_gestures()
 
     # read
     def read_data(self):
@@ -90,80 +125,37 @@ class GestureApp:
 
     def on_press(self, key):
         try:
-            if hasattr(key, 'char'):
-                c = key.char
+            c = None
 
-                # 리셋/저장 (-)
-                if c == '-': # -를 누르면
-                    if any(self.flags.values()): # true가 있다면 
-                        self.flags = {k : False for k in self.flags}
-                        if self.saved_count > 0:
-                            self.file.flush()
-                            os.fsync(self.file.fileno())
-                            print(">>> 모든 데이터가 CSV 파일에 안전하게 저장되었습니다.")
-                            self.saved_count = 0
-                            self.file.close()
-                            self.model.reload()
-
-                # 모드별 동작 (Insert 등)
-                if self.flags["i"]:
-                    if ord(c) in self.gesture_names:
-                        self.insert_data(c)
-                elif self.flags["d"]:
-                    self.delete_data(c) # 삭제함수
-                elif self.flags["u"]:
-                    if self.update_count == 0:
-                        self.old_chr = c
-                        self.update_count = 1
-                        print(f"대상 라벨 {self.old_chr} 선택됨. 바꿀 라벨을 누르세요.")
-                    elif self.update_count == 1:
-                        new_chr = c
-                        print(f"실행: {self.old_chr} -> {new_chr} 수정 중...")
-                        
-                        # 실제 데이터 수정 함수 호출
-                        self.update_data(self.old_chr, new_chr)
-
-                # # 모드 전환
-                # if c in self.flags and not any(self.flags.values()): # true가 없다면
-                #     if c == 'i' :
-                #         self.flags["i"] = True
-                #         print("insert_mode 설정")
-                #     if self.model.knn is not None:
-                #         if c == 'd' :
-                #             self.flags["d"] = True
-                #             print("delete_mode 설정")
-                #         elif c == 'u':
-                #             self.flags["u"] = True
-                #             print("update_mode 설정")
-                #         elif c == 'q': # 임시
-                #             self.model.evaluate()
-                
             if key == keyboard.Key.esc:
                 self.exit_program = True
                 return False  # 리스너 스레드 종료
 
-        except AttributeError:
-            print(f'{key} 특수키 눌림')
+            if hasattr(key, 'char') and key.char is not None:
+                c = key.char
 
-    def img_put_text(self,Image):
-        Mode = ""
-        if self.flags["i"]:
-            Mode = "InsertMode"
-        elif self.flags["d"]:
-            Mode = "DeleteMode"
-        elif self.flags["u"]:
-            Mode = "UpdateMode"
-            
-        cv2.putText(
-                Image, 
-                Mode,
-                (10, 30),
-                cv2.FONT_HERSHEY_SIMPLEX, 
-                FONT_SIZE, 
-                (0, 0, 255), # 빨간색
-                FONT_THICKNESS, 
-                cv2.LINE_AA
-            )
+            if c is None:
+                return
+
+            # 모드별 동작 (Insert 등)
+            if self.flags["i"]:
+                self.insert_data(c)
+            elif self.flags["d"]:
+                self.delete_data(c) # 삭제함수
+            elif self.flags["u"]:
+                if self.update_count == 0:
+                    self.old_chr = c
+                    self.update_count = 1
+                    print(f"대상 라벨 {self.old_chr} 선택됨. 바꿀 라벨을 누르세요.")
+                elif self.update_count == 1:
+                    new_chr = c
+                    # 실제 데이터 수정 함수 호출
+                    self.update_data(self.old_chr, new_chr)
+                    self.update_count=0
+
+        except AttributeError:
+            import traceback
+            traceback.print_exc()
 
     def run(self):
         prev = None
@@ -173,6 +165,20 @@ class GestureApp:
         tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
 
         while self.cap.isOpened() and not self.exit_program:
+            
+            # 리셋/저장
+            if self.flags["reset"]:
+                # if any(self.flags.values()): # true가 있다면 
+                #     self.flags = {k : False for k in self.flags}
+                if self.saved_count > 0:
+                    self.file.flush()
+                    os.fsync(self.file.fileno())
+                    print(">>> 모든 데이터가 CSV 파일에 안전하게 저장되었습니다.")
+                    self.saved_count = 0
+                    self.file.close()
+                    self.model.reload()
+                self.flags["reset"]=False
+
             #ret, frame = self.cap.read()
             frame = self.cap.get_frame()
             if frame is None:
@@ -196,11 +202,12 @@ class GestureApp:
 
             current_result = self.read_data()
             if prev != current_result and tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
+                action = get_gesture_action(current_result)
                 prev = current_result
                 insert_log(current_result)
+                print(action) # 여기를 보내는 부분으로 바꾸면 됨
                 # Keyboard.press_key(current_result)
 
-            self.img_put_text(display_image)
             self.cap.set_display_frame(display_image)
             # if tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
             #     print(self.read_data())
