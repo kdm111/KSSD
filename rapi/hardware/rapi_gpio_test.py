@@ -13,7 +13,7 @@ motor_right_front = Motor(forward=24, backward=23, enable=25, pwm=True)
 
 MAX_SPEED = 1.0
 MIN_SPEED = 0.4
-ROT_SPEED = 0.6
+ROT_SPEED = 0.5
 
 
 # 현재 눌린 키를 저장할 세트
@@ -81,8 +81,34 @@ try:
             motor_right_front.forward(ROT_SPEED)
             sleep(0.5)
 
+        elif key=='f':
+            # 5. 왼쪽 빠르게 스핀
+            motor_left_front.backward(MAX_SPEED)
+            motor_right_front.forward(MAX_SPEED)
+            sleep(0.5)
+
+        elif key=='g':
+            # 6. 오른쪽 빠르게 스핀
+            motor_left_front.forward(MAX_SPEED)
+            motor_right_front.backward(MAX_SPEED)
+            sleep(0.5)
+            
+        elif key=='h':
+            # 7. 왼쪽 느리게 스핀
+            motor_left_front.backward(ROT_SPEED)
+            motor_right_front.forward(MAX_SPEED)
+            sleep(0.5)
+            
+        elif key=='j':
+            # 8. 오른쪽 느리게 스핀
+            motor_left_front.forward(MAX_SPEED)
+            motor_right_front.backward(ROT_SPEED)
+            sleep(0.5)
+            
+        
+
         elif key=='z':
-            # 5. 최저 속도
+            # . 최저 속도
             motor_left_front.forward(MIN_SPEED)
             motor_right_front.forward(MIN_SPEED)
             sleep(0.5)
