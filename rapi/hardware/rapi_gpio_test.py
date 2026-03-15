@@ -6,8 +6,12 @@ import tty
 import termios
 
 # 모터 설정
-motor_left = Motor(forward=17, backward=27)
-motor_right = Motor(forward=23, backward=24)
+motor_left_front = Motor(forward=27, backward=17, enable=22, pwm=True)
+motor_right_front = Motor(forward=24, backward=23, enable=25, pwm=True)
+# motor_left_rear = Motor(forward=5, backward=6, enable=13, pwm=True)
+# motor_right_rear = Motor(forward=16, backward=20, enable=21, pwm=True)
+
+
 
 # 현재 눌린 키를 저장할 세트
 pressed_keys = set()
@@ -49,29 +53,44 @@ try:
     while listener.running:
         key = get_key()
         if key=='w':
-            sleep(0.5)
             print("모터 작동 중 (전진/후진 시퀀스)")
             # 1. 전진
             # for i in range(5, 15, 5):
-            motor_left.forward()
-            motor_right.forward()
+            motor_left_front.forward()
+            motor_right_front.forward()
             sleep(0.5) # 너무 길면 키 떼는 반응이 늦으므로 0.5초로 단축
             
         elif key=='s':
             # 2. 후진
+            motor_left_front.backward()
+            motor_right_front.backward()
             sleep(0.5)
-            motor_left.backward()
-            motor_right.backward()
+
+        elif key=='a':
+            # 3. 좌회전
+            motor_left_front.forward(0.5)
+            motor_right_front.forward()
             sleep(0.5)
-            
+        
+        elif key=='d':
+            # 4. 우회전
+            motor_left_front.forward()
+            motor_right_front.forward(0.5)
+            sleep(0.5)
+
+        elif key=='z':
+            # 5. 최저 속도
+            motor_left_front.forward(0.3)
+            motor_right_front.forward(0.3)
+            sleep(0.5)
+                    
         else:
             # 아무 키도 안 눌렸을 때 모터 정지
+            motor_left_front.stop()
+            motor_right_front.stop()
             sleep(0.5)
-            motor_left.stop()
-            motor_right.stop()
-            sleep(0.5)
-            #if key =='q':
-            #    exit()
+        if key =='q':
+            exit()
             
             
         sleep(0.1) # CPU 점유율 방지용 미세 대기
@@ -79,7 +98,7 @@ try:
 except KeyboardInterrupt:
     print("\n중단됨")
 finally:
-    motor_left.stop()
-    motor_right.stop()
+    motor_left_front.stop()
+    motor_right_front.stop()
     listener.stop()
     print("프로그램 종료")
