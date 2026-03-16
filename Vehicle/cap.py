@@ -61,8 +61,7 @@ class Cap:
 
             with self.lock:
                 self.frame = frame
-                if detections:
-                    self.detections = detections
+                self.detections = detections
 
     def _estimate_distance(self, bbox_height, frame_height):
         ratio = bbox_height / frame_height
