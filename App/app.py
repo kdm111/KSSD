@@ -7,6 +7,8 @@ import os
 from cap import Cap
 from Model import GestureApp
 from DB import db
+from Socket.socket_server import socket_server
+from Socket.socket_server import generate_server
 
 #from flask_socketio import SocketIO
 
@@ -74,6 +76,16 @@ def set_action():
         'all_flags': gesture_app.action_flags
     })
 
+@app.route('/video_feed2')
+def video_feed2():
+    # 두 번째 영상 스트리밍 경로
+    return Response(generate_server(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/index2') # 라즈베리파이에서 받아와서 출력할 웹 페이지
+def index2():
+    # templates/index2.html 파일을 렌더링
+    return render_template('index2.html')
+
 if __name__ == '__main__':
 
     db.connect()
@@ -85,6 +97,10 @@ if __name__ == '__main__':
 
     t1 = Thread(target=gesture_app.run, daemon=True)
     t1.start()
+
+    # 소켓 서버를 별도 스레드에서 실행
+    t_socket = Thread(target=socket_server,daemon=True)
+    t_socket.start()
 
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
 
