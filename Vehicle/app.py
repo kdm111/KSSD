@@ -9,15 +9,16 @@ from vehicle import Vehicle
 from commands import COMMANDS
 from cap import Cap
 from DB import db
-from DB.create_db import init
 import sys
-import tty
-import termios
+from DB.create_db import init
+if sys.platform != 'win32':
+    import tty
+    import termios
 
 vehicle = Vehicle(commands=COMMANDS)
 cap = Cap(0)
 
-PC_IP = "PC의IP주소"  # PC Flask가 돌아가는 IP
+PC_IP = "127.0.0.1"  # PC Flask가 돌아가는 IP
 PC_PORT = 9999
 
 
@@ -48,14 +49,15 @@ def socket_stream(cap):
 
 
 def get_key():
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        key = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    return key
+    if sys.platform != 'win32':
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            key = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        return key
 
 
 def keyboard_listener(vehicle):
