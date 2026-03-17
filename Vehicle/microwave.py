@@ -5,7 +5,7 @@ class MicroWave:
         self.direction = direction
         self.distance_sensor = None
         self.mock_mode = False
-        self.threshold = 0.5  # 20cm 이내면 장애물로 판단
+        self.threshold = 0.5  # 50cm 이내면 장애물로 판단
 
     def connect(self):
         try:
@@ -18,7 +18,7 @@ class MicroWave:
         try:
             if self.direction == "FRONT":
                 self.distance_sensor = DistanceSensor(echo=12, trigger=4)
-            else:
+            elif self.direction == "REAR":
                 self.distance_sensor = DistanceSensor(echo=19, trigger=8)
             print(f"✅ {self.direction} 초음파 연결 완료")
         except Exception as e:

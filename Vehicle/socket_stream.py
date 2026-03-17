@@ -9,7 +9,7 @@ import struct
 # 한국시간 설정
 KST = ZoneInfo("Asia/Seoul")
 
-def socket_stream(cap, vehicle, PC_IP, PC_PORT):
+def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
     """PC에 데이터를 소켓으로 전송"""
     
     time.sleep(1.5)  # 카메라 준비 대기
@@ -19,7 +19,24 @@ def socket_stream(cap, vehicle, PC_IP, PC_PORT):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((PC_IP, PC_PORT))
             print(f"✅ PC 소켓 연결 ({PC_IP}:{PC_PORT})")
-
+            def receive_commands():
+                while True:
+                    try:
+                        raw = sock.recv(4)
+                        if not raw: break
+                        cmd_len = struct.unpack(">L", raw)[0]
+                        payload = json.loads(sock.recv(cmd_len).decode('utf-8'))
+                        cmd = payload.get("command")
+                        duration = payload.get("duration", 0)
+                        print(f"📥 PC 명령: {cmd} {duration}s")
+                        if duration > 0:
+                            drive_manager.execute_for(cmd, duration)
+                        else:
+                            drive_manager.execute(cmd)
+                    except:
+                        break
+            from threading import Thread
+            Thread(target=receive_commands, daemon=True).start()  # 여기 추가
             while True:
                 frame = cap.get_display_frame()
                 if frame is None:
@@ -35,22 +52,26 @@ def socket_stream(cap, vehicle, PC_IP, PC_PORT):
                 vehicle_state = vehicle.get_info()
                 vehicle_state["timestamp"] = timestamp
                 state_data = json.dumps(vehicle_state).encode('utf-8')
-                # timestamp 고정 23바이트 + 이미지
+
+                save_flag, save_path = cap.get_save_info()
+                state_data = json.dumps({
+                    **vehicle_state,
+                    "save_path": save_path  # None 또는 파일명
+                }).encode('utf-8')
+
                 sock.sendall(
                     struct.pack(">L", len(img_data)) +    # 이미지 크기
                     timestamp.encode('utf-8') +            # 23바이트
                     img_data +                             # 이미지
                     struct.pack(">L", len(state_data)) +  # 상태 크기
-                    state_data                             # 상태 JSON
+                    state_data +                          # 상태 JSON
+                    struct.pack(">?", save_flag)  # bool 1바이트로 전송
                 )
-
         except BrokenPipeError:
             print("⚠️ Broken pipe - 재연결 시도")
             break
-            
         except Exception as e:
             print(f"⚠️ 소켓 연결 실패: {e}, 1.5초 후 재시도...")
             time.sleep(1.5)
-
-
-        time.sleep(0.3)
+        finally:
+            time.sleep(0.3)
