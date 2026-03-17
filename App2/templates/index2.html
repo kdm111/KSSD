@@ -181,7 +181,39 @@
           <div id="vTimestamp" style="font-size: 0.65rem; color: var(--dim); margin-top: 4px;">—</div>
         </div>
       </div>
+      <!-- 명령 전송 카드 -->
+      <div class="card">
+        <div class="card-title">// SEND COMMAND</div>
+        
+        <!-- 명령 선택 -->
+        <div style="margin-bottom: 0.8rem;">
+          <div style="font-size: 0.55rem; letter-spacing: 2px; color: var(--dim); margin-bottom: 6px;">COMMAND</div>
+          <select id="cmdSelect" style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--accent); font-family: 'JetBrains Mono', monospace; padding: 8px; border-radius: 3px;">
+            <option value="FOR">FORWARD</option>
+            <option value="BAK">BACKWARD</option>
+            <option value="LFT">LEFT</option>
+            <option value="RIT">RIGHT</option>
+            <option value="SPN">SPIN</option>
+            <option value="STP">STOP</option>
+          </select>
+        </div>
 
+        <!-- 초 입력 -->
+        <div style="margin-bottom: 0.8rem;">
+          <div style="font-size: 0.55rem; letter-spacing: 2px; color: var(--dim); margin-bottom: 6px;">DURATION (SEC)</div>
+          <input id="cmdDuration" type="number" value="1.0" min="0.1" max="10" step="0.1"
+            style="width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--green); font-family: 'Orbitron', monospace; padding: 8px; border-radius: 3px; font-size: 1rem;"/>
+        </div>
+
+        <!-- 전송 버튼 -->
+        <button id="cmdSendBtn" onclick="sendTimedCommand()"
+          style="width: 100%; padding: 0.8rem; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; border-radius: 3px;">
+          ▶ EXECUTE
+        </button>
+
+        <!-- 결과 표시 -->
+        <div id="cmdResult" style="margin-top: 0.6rem; font-size: 0.65rem; color: var(--dim); min-height: 1rem;"></div>
+      </div>
       <div class="card" style="border-color: var(--red);">
         <div class="card-title">// NAVIGATION</div>
         <button class="btn-nav" onclick="location.href='/'" style="border-color: var(--red); color: var(--red);">
@@ -240,6 +272,38 @@
       console.error('상태 조회 실패:', e);
     }
   }, 200); // 200ms 폴링
+async function sendTimedCommand() {
+  const cmd = document.getElementById('cmdSelect').value;
+  const duration = parseFloat(document.getElementById('cmdDuration').value);
+  const btn = document.getElementById('cmdSendBtn');
+  const result = document.getElementById('cmdResult');
+
+  btn.textContent = '⏳ EXECUTING...';
+  btn.style.borderColor = 'var(--yellow, #ffd93d)';
+  btn.style.color = 'var(--yellow, #ffd93d)';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch('/api/execute_for', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ command: cmd, duration: duration })
+    });
+    const data = await res.json();
+    result.textContent = data.blocked
+      ? `🚫 BLOCKED: ${data.reason}`
+      : `✅ ${data.executed} × ${data.duration}s`;
+    result.style.color = data.blocked ? 'var(--red)' : 'var(--green)';
+  } catch(e) {
+    result.textContent = '⚠️ 통신 실패';
+    result.style.color = 'var(--red)';
+  } finally {
+    btn.textContent = '▶ EXECUTE';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = 'var(--accent)';
+    btn.disabled = false;
+  }
+}
 </script>
 </body>
 </html>
