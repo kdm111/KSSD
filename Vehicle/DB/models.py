@@ -16,3 +16,15 @@ class Command(BaseModel):
     command = TextField()
     class Meta:
         table_name = 'command'
+
+class YoloDetectionResult(BaseModel):
+    timestamp = TextField()
+    label = TextField()
+    confidence = FloatField()
+    bbox_area = IntegerField()
+    inference_ms = FloatField()
+    distance_cm = IntegerField()
+
+    class Meta:
+        table_name = 'yolo_detection_result'
+

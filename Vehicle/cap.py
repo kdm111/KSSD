@@ -3,6 +3,7 @@ import threading
 import time
 from ultralytics import YOLO
 
+from DB import insert_yolo_detection_result
 
 class Cap:
     def __init__(self, cam_num=0, model_path="yolov8n.pt"):
@@ -53,7 +54,7 @@ class Cap:
                             "distance_cm": distance_cm,
                             "bbox": [x1, y1, x2, y2],
                         })
-
+                        insert_yolo_detection_result(label, round(conf, 3), (x2-x1) * (y2-y1), distance_cm, results[0].speed)
                         color = (0, 0, 255) if distance_cm < 30 else (0, 255, 255) if distance_cm < 60 else (0, 255, 0)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, f"{label} {conf:.2f} ~{distance_cm}cm",
