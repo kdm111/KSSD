@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 from vehicle import Vehicle
 from commands import COMMANDS
 from cap import Cap
-from DB import db
+from DB import db, init
 import sys
 import tty
 import termios
