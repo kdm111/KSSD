@@ -18,15 +18,15 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from socket_stream import socket_stream
+from drive_manager import DriveManager
 
 vehicle = Vehicle(commands=COMMANDS)
 front_distance_sensor = MicroWave("FRONT")
-back_distance_sensor = MicroWave("BACK")
+rear_distance_sensor = MicroWave("REAR")
 cap = Cap(0)
 
 PC_IP = "10.10.14.1"  # PC Flask가 돌아가는 IP
-PC_STATE_PORT = 9998
-PC_STREAM_PORT = 9999
+PC_PORT = 9999
 KST = ZoneInfo("Asia/Seoul")
 
 def get_key():
@@ -40,8 +40,7 @@ def get_key():
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
         return key
 
-
-def keyboard_listener(vehicle):
+def keyboard_listener(drive_manager):
     key_map = {
         'w': 'FOR', 's': 'BAK', 'a': 'LFT', 'd': 'RIT',
         'e': 'FST', 'r': 'SLW', ' ': 'STP', 'x': 'SPN',
@@ -50,30 +49,30 @@ def keyboard_listener(vehicle):
     while True:
         key = get_key()
         if key == 'q':
-            vehicle.execute('STP')
+            drive_manager.execute('STP')
             break
         cmd = key_map.get(key)
         if cmd:
-            if front_distance_sensor.is_safe():
-                result = vehicle.execute(cmd)
-                print(f"→ {result}")
-            else:
-                print("위험상태 감지 정지")
-                vehicle.stop()
-
+            result = drive_manager.execute(cmd)
+            print(f"→ {result}")
+        else:
+            print("위험상태 감지 정지")
+            drive_manager.execute('STP')
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init()
     vehicle.connect()
-
+    drive_manager = DriveManager(vehicle, front_distance_sensor, rear_distance_sensor, cap)
+    
     # 키보드 스레드
-    threading.Thread(target=keyboard_listener, args=(vehicle,), daemon=True).start()
+    threading.Thread(target=keyboard_listener, args=(drive_manager,), daemon=True).start()
 
     # PC로 차량 상태/영상 전송 스레드
-    threading.Thread(target=socket_stream, args=(cap,vehicle,PC_IP,PC_STREAM_PORT), daemon=True).start()
-
+    threading.Thread(target=socket_stream, args=(cap,vehicle,drive_manager,PC_IP,PC_PORT), daemon=True).start()
+    
     print("✅ 서버 시작 | 카메라: http://0.0.0.0:8000/camera")
+
     yield
 
     vehicle.disconnect()

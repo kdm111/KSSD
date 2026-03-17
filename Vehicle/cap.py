@@ -11,17 +11,24 @@ from DB import insert_yolo_detection_result
 KST = ZoneInfo("Asia/Seoul")
 
 class Cap:
-    def __init__(self, cam_num=0, model_path="yolov8n.pt"):
+    def __init__(self, cam_num=0, model_path="yolov10n.pt"):
         self.cap = cv2.VideoCapture(cam_num)
         self.frame = None
         self.display_frame = None
         self.detections = []
         self.lock = threading.Lock()
 
+
         # YOLO
         self.model = YOLO(model_path)
-        self.confidence_threshold = 0.5
+        self.confidence_threshold = 0.65
         self.frame_skip = 3
+
+        # 
+        self._last_detection_labels = set()
+        self._last_detection_distances = {}
+        self.save_path = None    # 추가
+        self.save_flag = False
 
         t = threading.Thread(target=self._update, daemon=True)
         t.start()
@@ -43,6 +50,7 @@ class Cap:
                 detections = []
                 now = datetime.now(KST)
                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
+                path = timestamp.replace(":", "-").replace(" ", "_")
                 for result in results:
                     for box in result.boxes:
                         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
@@ -59,15 +67,57 @@ class Cap:
                             "distance_cm": distance_cm,
                             "bbox": [x1, y1, x2, y2],
                         })
-                        insert_yolo_detection_result(now, label, round(conf, 3), (x2-x1) * (y2-y1), distance_cm, results[0].speed["inference"], '')
+
+                        
                         color = (0, 0, 255) if distance_cm < 30 else (0, 255, 255) if distance_cm < 60 else (0, 255, 0)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, f"{label} {conf:.2f} ~{distance_cm}cm",
                                     (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                significant = self._is_significant_change(detections)
+
+                if detections:
+                    if significant:
+                        insert_yolo_detection_result(now, label, round(conf, 3), (x2-x1) * (y2-y1), distance_cm, results[0].speed["inference"], f'{path}.jpg')
+                        self._update_detection_history(detections)
+                else:
+                    significant = bool(self._last_detection_labels)
+                    self._update_detection_history([])
 
                 with self.lock:
                     self.frame = frame.copy()
                     self.display_frame = frame
+                    self.detections = detections
+                    self.save_flag = significant 
+                    self.save_path = path if significant else None 
+
+    def _is_significant_change(self, detections) -> bool:
+        current_labels = {d["label"] for d in detections}
+        
+        # 1. label 종류가 바뀌었을 때
+        if current_labels != self._last_detection_labels:
+            return True
+        
+        # 2. 거리가 30cm 이상 변했을 때
+        for det in detections:
+            label = det["label"]
+            prev_dist = self._last_detection_distances.get(label)
+            if prev_dist is not None and abs(det["distance_cm"] - prev_dist) >= 30:
+                return True
+
+        return False
+
+    # get_save_flag() 대신 get_save_info()로 교체
+    def get_save_info(self):
+        with self.lock:
+            flag = self.save_flag
+            path = self.save_path
+            self.save_flag = False
+            self.save_path = None
+            return flag, path
+
+    def _update_detection_history(self, detections):
+        self._last_detection_labels = {d["label"] for d in detections}
+        self._last_detection_distances = {d["label"]: d["distance_cm"] for d in detections}
 
     def _estimate_distance(self, bbox_height, frame_height):
         ratio = bbox_height / frame_height

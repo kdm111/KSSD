@@ -46,16 +46,15 @@ class Vehicle:
             return {"error": "not connected"}
         if command_name not in self.commands:
             return {"error": f"unknown: {command_name}"}
- 
+
         if self.mock_mode:
-            # Mock: 상태만 업데이트, 모터 동작 없음
-            self.current_command = command_name
+            self.commands[command_name](self)  # speed_up/down 반영을 위해 호출
             print(f"🎮 [Mock] {command_name} (speed: {self.speed})")
             return {"executed": command_name, "mock": True, "speed": self.speed}
- 
+
         self.commands[command_name](self)
         return {"executed": command_name, "speed": self.speed, "status": self.status}
- 
+    
     def get_info(self):
         return {
             "is_connected": self.is_connected,
