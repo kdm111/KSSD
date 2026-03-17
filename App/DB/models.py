@@ -22,3 +22,4 @@ class Gesture(BaseModel):
     action_map = CharField()
     class Meta:
         table_name = 'gesture'
+
