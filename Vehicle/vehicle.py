@@ -1,3 +1,5 @@
+from microwave import MicroWave
+
 class Vehicle:
     def __init__(self, commands: dict = None):
         self.motor_left = None
@@ -44,6 +46,7 @@ class Vehicle:
     def execute(self, command_name: str):
         if not self.is_connected:
             return {"error": "not connected"}
+
         if command_name not in self.commands:
             return {"error": f"unknown: {command_name}"}
  
@@ -52,7 +55,7 @@ class Vehicle:
             self.current_command = command_name
             print(f"🎮 [Mock] {command_name} (speed: {self.speed})")
             return {"executed": command_name, "mock": True, "speed": self.speed}
- 
+
         self.commands[command_name](self)
         return {"executed": command_name, "speed": self.speed, "status": self.status}
  
@@ -64,3 +67,8 @@ class Vehicle:
             "speed": self.speed,
             "current_command": self.current_command,
         }
+    def stop(self):
+        if not self.mock_mode:
+            self.motor_left.stop()
+            self.motor_right.stop()
+        self.status = 'READY'
