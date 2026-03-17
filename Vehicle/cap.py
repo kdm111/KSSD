@@ -1,6 +1,7 @@
 import cv2
 import threading
 import time
+import datetime
 from ultralytics import YOLO
 
 from DB import insert_yolo_detection_result
@@ -37,7 +38,8 @@ class Cap:
 
             if frame_count % self.frame_skip == 0:
                 results = self.model(frame, verbose=False, conf=self.confidence_threshold, imgsz=320)
-
+                now = datetime.now()
+                timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
                 for result in results:
                     for box in result.boxes:
                         x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
@@ -54,15 +56,15 @@ class Cap:
                             "distance_cm": distance_cm,
                             "bbox": [x1, y1, x2, y2],
                         })
-                        insert_yolo_detection_result(label, round(conf, 3), (x2-x1) * (y2-y1), distance_cm, results[0].speed["inference"])
+                        insert_yolo_detection_result(now, label, round(conf, 3), (x2-x1) * (y2-y1), distance_cm, results[0].speed["inference"])
                         color = (0, 0, 255) if distance_cm < 30 else (0, 255, 255) if distance_cm < 60 else (0, 255, 0)
                         cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                         cv2.putText(frame, f"{label} {conf:.2f} ~{distance_cm}cm",
                                     (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
             with self.lock:
-                self.frame = frame
-                self.detections = detections
+                self.frame = frame.copy()
+                self.display_frame = frame
 
     def _estimate_distance(self, bbox_height, frame_height):
         ratio = bbox_height / frame_height
@@ -80,6 +82,10 @@ class Cap:
     def get_frame(self):
         with self.lock:
             return self.frame.copy() if self.frame is not None else None
+
+    def get_display_frame(self):
+        with self.lock:
+            return self.display_frame.copy() if self.display_frame is not None else None
 
     def get_detections(self):
         with self.lock:

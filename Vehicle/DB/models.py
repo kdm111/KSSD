@@ -24,7 +24,7 @@ class YoloDetectionResult(BaseModel):
     bbox_area = IntegerField()
     inference_ms = FloatField()
     distance_cm = IntegerField()
-
+    img_dir = TextField()
     class Meta:
         table_name = 'yolo_detection_result'
 
