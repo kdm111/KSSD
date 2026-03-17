@@ -22,8 +22,8 @@ class Vehicle:
     def connect(self):
         try:
             from gpiozero import Motor
-            self.motor_left = Motor(forward=17, backward=27, enable=18, pwm=True)
-            self.motor_right = Motor(forward=23, backward=24, enable=13, pwm=True)
+            self.motor_left = Motor(forward=27, backward=17, enable=22, pwm=True)
+            self.motor_right = Motor(forward=24, backward=23, enable=25, pwm=True)
             self.is_connected = True
             print("✅ 모터 연결 (GPIO)")
         except Exception:
