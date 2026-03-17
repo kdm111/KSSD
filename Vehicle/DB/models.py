@@ -28,3 +28,10 @@ class YoloDetectionResult(BaseModel):
     class Meta:
         table_name = 'yolo_detection_result'
 
+
+class DrivingSession(BaseModel):
+    session_id = AutoField()
+    start_at = TextField()
+    ended_at = TextField(null=True)
+    class Meta:
+        table_name = 'driving_session'

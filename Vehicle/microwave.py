@@ -1,0 +1,3 @@
+class MicroWave:
+    pass
+    

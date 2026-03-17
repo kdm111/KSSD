@@ -10,17 +10,16 @@ from commands import COMMANDS
 from cap import Cap
 from DB import db
 import sys
-from DB.create_db import init
-if sys.platform != 'win32':
-    import tty
-    import termios
-
+import tty
+import termios
+from datetime import datetime
+from zoneinfo import ZoneInfo
 vehicle = Vehicle(commands=COMMANDS)
 cap = Cap(0)
 
-PC_IP = "127.0.0.1"  # PC Flask가 돌아가는 IP
+PC_IP = "10.10.14.1"  # PC Flask가 돌아가는 IP
 PC_PORT = 9999
-
+KST = ZoneInfo("Asia/Seoul")
 
 def socket_stream(cap):
     """PC에 카메라 영상을 소켓으로 전송"""
@@ -36,16 +35,24 @@ def socket_stream(cap):
             while True:
                 frame = cap.get_display_frame()
                 if frame is None:
+                    time.sleep(0.03)
                     continue
                 import cv2
+                now = datetime.now(KST)
+                timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
+
                 _, buffer = cv2.imencode('.jpg', frame)
-                data = buffer.tobytes()
-                sock.sendall(struct.pack(">L", len(data)) + data)
+                img_data = buffer.tobytes()
+
+                # timestamp 고정 23바이트 + 이미지
+                sock.sendall(struct.pack(">L", len(img_data)))
+                sock.sendall(timestamp.encode('utf-8'))  # 23바이트 고정
+                sock.sendall(img_data)
 
         except Exception as e:
-            print(f"⚠️ 소켓 연결 실패: {e}, 3초 후 재시도...")
+            print(f"⚠️ 소켓 연결 실패: {e}, 1초 후 재시도...")
             import time
-            time.sleep(3)
+            time.sleep(1)
 
 
 def get_key():

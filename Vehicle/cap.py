@@ -1,10 +1,14 @@
 import cv2
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 from ultralytics import YOLO
 
 from DB import insert_yolo_detection_result
+
+# 한국시간 설정
+KST = ZoneInfo("Asia/Seoul")
 
 class Cap:
     def __init__(self, cam_num=0, model_path="yolov8n.pt"):
@@ -34,11 +38,10 @@ class Cap:
                 continue
 
             frame_count += 1
-            detections = []
-
             if frame_count % self.frame_skip == 0:
                 results = self.model(frame, verbose=False, conf=self.confidence_threshold, imgsz=320)
-                now = datetime.now()
+                detections = []
+                now = datetime.now(KST)
                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
                 for result in results:
                     for box in result.boxes:
@@ -62,9 +65,9 @@ class Cap:
                         cv2.putText(frame, f"{label} {conf:.2f} ~{distance_cm}cm",
                                     (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-            with self.lock:
-                self.frame = frame.copy()
-                self.display_frame = frame
+                with self.lock:
+                    self.frame = frame.copy()
+                    self.display_frame = frame
 
     def _estimate_distance(self, bbox_height, frame_height):
         ratio = bbox_height / frame_height
