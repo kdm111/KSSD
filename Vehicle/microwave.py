@@ -10,17 +10,23 @@ class MicroWave:
     def connect(self):
         try:
             from gpiozero import DistanceSensor
+        except ImportError:
+            self.mock_mode = True
+            print(f"⚠️ {self.direction} Mock 모드 (gpiozero 없음)")
+            return
+
+        try:
             if self.direction == "FRONT":
                 self.distance_sensor = DistanceSensor(echo=12, trigger=4)
             else:
                 self.distance_sensor = DistanceSensor(echo=19, trigger=8)
             print(f"✅ {self.direction} 초음파 연결 완료")
-        except (ImportError, Exception):
+        except Exception as e:
             self.mock_mode = True
-            print(f"⚠️ {self.direction} Mock 모드 활성화")
+            print(f"⚠️ {self.direction} Mock 모드 ({e})")
 
     def get_distance(self):
-        if self.mock_mode:
+        if self.mock_mode or self.distance_sensor is None:
             return 1.0  # Mock 모드일 때는 장애물이 없는 것으로 간주(1m)
         return self.distance_sensor.distance # meter 단위 반환
 
