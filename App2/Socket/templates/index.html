@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SYSTEM MONITOR - LIVE FEED</title>
+    <style>
+        body {
+            background-color: #0a0e14;
+            color: #00f2ff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 화면 전체 높이 사용 */
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .monitor-frame {
+            position: relative;
+            border: 2px solid #00f2ff;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.2);
+            background: #000;
+            /* 영상 크기에 맞춰 조절 (보통 640x480) */
+            width: 80%;
+            max-width: 800px;
+        }
+
+        /* 영상 위에 뜨는 시스템 정보 라벨 */
+        .system-label {
+            position: absolute;
+            top: -25px;
+            left: 10px;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 5px #00f2ff;
+        }
+
+        .live-feed-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 450px;
+        }
+
+        #video-stream {
+            width: 100%;
+            display: block;
+            border-top: 1px solid rgba(0, 242, 255, 0.3);
+        }
+
+        #standby-text {
+            position: absolute;
+            color: #444;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="monitor-frame">
+        <div class="system-label">● LIVE FEED // CAR_CAMERA</div>
+        
+        <div class="live-feed-container">
+            <div id="standby-text">[ SYSTEM: CONNECTING... ]</div>
+            
+            <img id="video-stream" src="/stream_data" 
+                 style="width: 100%; display: block;"
+                 onload="document.getElementById('standby-text').style.display='none';"
+                 onerror="document.getElementById('standby-text').innerText='[ ERROR: SIGNAL LOST ]';">
+        </div>
+    </div>
+
+</body>
+</html>
