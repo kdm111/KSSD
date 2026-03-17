@@ -3,7 +3,7 @@ import socket
 import struct
 import time
 
-SERVER_IP = '10.10.14.2'
+SERVER_IP = '10.10.14.1'
 PORT = 9999
 
 def start_client():
