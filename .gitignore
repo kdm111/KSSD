@@ -3,3 +3,4 @@ Vehicle/.vehicle/
 __pycache__/
 yolov8n.pt
 *.pt
+App/DB/__pycache__/
