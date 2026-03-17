@@ -9,7 +9,6 @@ from vehicle import Vehicle
 from commands import COMMANDS
 from cap import Cap
 from DB import db
-from DB.create_db import init
 import sys
 import tty
 import termios
@@ -57,14 +56,15 @@ def socket_stream(cap):
 
 
 def get_key():
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        key = sys.stdin.read(1)
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    return key
+    if sys.platform != 'win32':
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd)
+            key = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        return key
 
 
 def keyboard_listener(vehicle):
