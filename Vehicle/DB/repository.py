@@ -16,7 +16,5 @@ def get_all():
 def get_command(id: int):
     return Command.select().where(id=id)
 
-def insert_yolo_detection_result(label:str, confidence: float, bbox_area: int, inference_ms: float, distance_cm: int):
-    now = datetime.now()
-    timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
-    return YoloDetectionResult.create(timestamp=now, label=label, confidence=confidence, bbox_area=bbox_area, inference_ms=inference_ms, distance_cm=distance_cm)
+def insert_yolo_detection_result(now, label:str, confidence: float, bbox_area: int, inference_ms: float, distance_cm: int):
+    return YoloDetectionResult.create(timestamp=now, label=label, confidence=confidence, bbox_area=bbox_area, inference_ms=inference_ms, distance_cm=distance_cm, img_dir='')

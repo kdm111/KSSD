@@ -33,7 +33,7 @@ def socket_stream(cap):
             print(f"✅ PC 소켓 연결 ({PC_IP}:{PC_PORT})")
 
             while True:
-                frame = cap.get_frame()
+                frame = cap.get_display_frame()
                 if frame is None:
                     continue
                 import cv2
