@@ -1,7 +1,5 @@
-from typing import NamedTuple
-
 import numpy as np
-from time import time, sleep
+from time import time
 
 _DATA_HEADER = [
     "th1",
@@ -45,6 +43,7 @@ class GestureController:
         self._d_pos = np.array([0.0, 0.0, 0.0])
         self._wait = 0
         self.sensitive = 0.1
+        self.mouse_sensitive = 10
         self._before = time()
 
         self._hysteresis_band = (0.2, 0.8)
@@ -99,10 +98,10 @@ class GestureController:
         return None
     
     def mouse(self, center: np.ndarray, dt):
-        if self._center is None:
+        if self._center is None or self._r_key == 0b0:
             self._center = center
 
-        d_pos = self._center - center
+        d_pos = (self._center - center) * self.mouse_sensitive
         self._d_pos = self._temporal_smoothing(d_pos, self._d_pos, dt)
 
         print((d_pos[0] * 254).astype(int), (d_pos[1] * 254).astype(int))
