@@ -5,4 +5,5 @@ yolov8n.pt
 *.pt
 App/DB/__pycache__/
 Vehicle/DB/__pycache__/
+Vehicle/DB/gcc.db
 gcc.db
