@@ -1,7 +1,7 @@
 import cv2
 import threading
 import time
-import datetime
+from datetime import datetime
 from ultralytics import YOLO
 
 from DB import insert_yolo_detection_result
