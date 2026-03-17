@@ -5,7 +5,10 @@ import struct
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
+
 from vehicle import Vehicle
+from microwave import MicroWave
+
 from commands import COMMANDS
 from cap import Cap
 from DB import db, init
@@ -14,7 +17,10 @@ import tty
 import termios
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 vehicle = Vehicle(commands=COMMANDS)
+front_distance_sensor = MicroWave("FRONT")
+back_distance_sensor = MicroWave("BACK")
 cap = Cap(0)
 
 PC_IP = "10.10.14.1"  # PC Flask가 돌아가는 IP
@@ -80,8 +86,12 @@ def keyboard_listener(vehicle):
             break
         cmd = key_map.get(key)
         if cmd:
-            result = vehicle.execute(cmd)
-            print(f"→ {result}")
+            if front_distance_sensor.is_safe():
+                result = vehicle.execute(cmd)
+                print(f"→ {result}")
+            else:
+                print("위험상태 감지 정지")
+                vehicle.stop()
 
 
 @asynccontextmanager
