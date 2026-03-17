@@ -4,6 +4,7 @@ import numpy as np
 import os
 import tensorflow as tf
 import threading
+from Model.Gesture_DNN import Pre_DNN
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from sklearn.model_selection import train_test_split
@@ -15,7 +16,19 @@ MARGIN = 10
 FONT_SIZE = 1
 FONT_THICKNESS = 1
 HANDEDNESS_TEXT_COLOR = (255, 0, 0) # cv2에 보이는 라벨 색
-
+LABEL_HEADER = [
+    # finger labels
+    # 1 = open, 0 = folded
+    "th_open",
+    "in_open",
+    "mi_open",
+    "ri_open",
+    "pi_open",
+    "ti_touch",
+    "tm_touch",
+    # "clockwise",
+    # "anticlockwise"
+]
 class GestureModel:
     """KNN 모델 학습 및 추론 담당 (AI 로직)"""
     
@@ -23,6 +36,7 @@ class GestureModel:
         self.csv_path = csv_path
         self.lstm_path = './Model/test_lstm_model.h5'
         self.knn = None
+        self.DNN = Pre_DNN()
         self.AIModel = tf.keras.models.load_model(self.lstm_path)
         self.reload()
         # --- 2. MediaPipe 설정 및 유틸리티 ---
@@ -100,9 +114,41 @@ class GestureModel:
             palm_normal = palm_normal / np.linalg.norm(palm_normal)
             palm_normal = palm_normal * 500 # 가중치를 확실히줘서 어떻게 회전해 있는지 확인
 
-            full_data = np.append(angle, palm_normal)
-            full_data = np.append(full_data,hand_side)
+            full_data = np.append(angle, hand_side)
+            DNN_data = np.append(angle,hand_side/100)
+            full_data = np.append(full_data, palm_normal)
 
+            # DNN
+
+            pred = self.DNN.predict_gesture(DNN_data)
+            right_result = None
+            left_result = None
+
+            if hand_label == "Left":
+                right_result = pred
+            elif hand_label == "Right":
+                left_result = pred
+            
+            result =  {
+                "left": left_result,
+                "right": right_result
+            }
+    
+            # DNN 변수
+            pred_left = result["left"]
+            if pred_left is None:
+                pred_left = [0 for _ in LABEL_HEADER]
+            pred_right = result["right"]
+            if pred_right is None:
+                pred_right = [0 for _ in LABEL_HEADER]
+            
+            # pred_right = [1 if i > 0.7 else 0 for i in pred_right]
+            # pred_left = [1 if i > 0.7 else 0 for i in pred_left]
+
+            # print(pred_left,pred_right)
+
+
+            # 기존모델
             self.sequence.append(full_data)
             self.sequence = self.sequence[-self.seq_length:] 
 
