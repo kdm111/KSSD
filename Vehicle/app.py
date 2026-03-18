@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 from socket_stream import socket_stream
 from drive_manager import DriveManager
 
-vehicle = Vehicle(commands=COMMANDS)
+vehicle = Vehicle(name="gcc01", commands=COMMANDS)
 front_distance_sensor = MicroWave("FRONT")
 rear_distance_sensor = MicroWave("REAR")
 cap = Cap(0)

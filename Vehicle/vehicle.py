@@ -1,5 +1,6 @@
 class Vehicle:
-    def __init__(self, commands: dict = None):
+    def __init__(self, name: str, commands: dict = None):
+        self.id = name
         self.motor_left = None
         self.motor_right = None
         self.is_connected = False
