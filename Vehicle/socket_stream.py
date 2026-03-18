@@ -11,7 +11,7 @@ KST = ZoneInfo("Asia/Seoul")
 
 def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
     """PC에 데이터를 소켓으로 전송"""
-    
+
     time.sleep(1.5)  # 카메라 준비 대기
 
     while True:

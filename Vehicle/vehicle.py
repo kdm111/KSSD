@@ -45,6 +45,9 @@ class Vehicle:
     def execute(self, command_name: str):
         if not self.is_connected:
             return {"error": "not connected"}
+
+        if command_name == self.current_command:
+            return {"skipped": command_name, "reason": "same command"}
         if command_name not in self.commands:
             return {"error": f"unknown: {command_name}"}
 
