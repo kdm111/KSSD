@@ -18,6 +18,7 @@ from DB import get_gesture_id
 from DB import check_gesture_exists
 from DB import get_gesture_all
 from DB import get_id_action
+from DB import get_id_gesture
 
 from .GestureModel import GestureModel
 from .TimeManager import TimeManager
@@ -204,9 +205,21 @@ class GestureApp:
             
             # todo
             if self.model.get_key()!=None:
-                action = get_id_action(self.model.get_key()+1)
-                if action is not None:
-                    Keyboard.send_cmd(str(get_id_action(self.model.get_key()+1)))
+                print(self.model.gesture_controller.device)
+                # print(self.model.gesture_controller.device is not None)
+                # print('RPi' in self.model.gesture_controller.device)
+                if (self.model.gesture_controller.device is not None) and ('RPi' in self.model.gesture_controller.device):
+                    action = get_id_action(self.model.get_key()+1)
+                    print(action)
+                    if action is not None:
+                        Keyboard.send_cmd(str(action))
+                #자동차모드가 아니면
+                else:
+                    action = get_id_gesture(self.model.get_key()+1)
+                    print(action)
+                    if action is not None:
+                        Keyboard.press_key(str(action))
+
                 # Keyboard.send_string(str())
 
             current_result = self.read_data()

@@ -1,8 +1,7 @@
 import numpy as np
 import threading
 from time import time, sleep
-from gcc import Keyboard, Mouse
-# , GCC
+from gcc import Keyboard, Mouse, GCC
 
 _RAW_TO_GESTURE = {
     # reset
@@ -54,19 +53,24 @@ class GestureController:
     def __init__(self):
         self._l_value = np.array([0.0] * len(_LABEL_HEADER))
         self._r_value = np.array([0.0] * len(_LABEL_HEADER))
+        self.device = None
 
         self._l_key = 0
         self._r_key = 0
         self._l_used = False
         self._r_used = False
+        self._r_time = 0
+        self._r_wait = 2
         self._d_pos = np.array([0.0, 0.0, 0.0])
         self._wait = 0
-        self.sensitive = 0.1
-        self.mouse_sensitive = 100
+        self.sensitive = 0.01
+        self.mouse_sensitive = 300
         self._before = time()
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._mouse_thread = None
+        self._dnn_thread = None
+        GCC.RefreshDevices()
 
         self._hysteresis_band = (0.2, 0.8)
         self._center = None
@@ -87,7 +91,7 @@ class GestureController:
         new: np.ndarray,
         old: np.ndarray,
         dt: float,
-        tau: float = 0.12,
+        tau: float = 0.1,
     ) -> np.ndarray:
         """
         dt-aware exponential smoothing (continuous-time EMA)
@@ -116,7 +120,7 @@ class GestureController:
 
         and_value = 0
         or_value = 0
-        for p in probs:
+        for p in list(probs):
             and_value = (and_value << 1) | int(0 if p < self._hysteresis_band[0] else 1)
             or_value = (or_value << 1) | int(1 if p > self._hysteresis_band[1] else 0)
 
@@ -165,7 +169,7 @@ class GestureController:
                 -dy,
             )
 
-            sleep(0.01)  # 10ms = 100Hz
+            sleep(0.1)  # 10ms = 100Hz
 
     def start_mouse(self):
         if self._mouse_thread is None or not self._mouse_thread.is_alive():
@@ -192,16 +196,18 @@ class GestureController:
         self._center = center
 
     def control(self):
-        # GCC.RefreshDevices()
-        # devices = GCC.GetAllConnectedDevices()
+        devices = GCC.GetAllConnectedDevices()
 
-        # # Unable jesture
-        # if self._l_key & 0b0001111:
-        #     return
+        # Unable jesture
+        if self._l_key & 0b1000111:
+            return
+        
+        key = _RAW_TO_GESTURE.get(self._l_key, None)
 
-        # if 0 <= self._l_key < len(devices):
-        #     devices[self._l_key]
-        pass
+        if key is not None and 1 <= key <= len(devices):
+            GCC.DisalbeAllDevicesNotify()
+            GCC.EnalbeDeviceNotify(devices[key - 1])
+            self.device = devices[key - 1]
 
 
     """
@@ -214,6 +220,7 @@ class GestureController:
         dt = current - self._before
         self._before = current
         self._wait += dt
+        self._r_time += dt
 
         l_value = gesture_results.get("left", None)
         if l_value is not None:
@@ -238,6 +245,7 @@ class GestureController:
                 self._r_used = False
                 self._wait = 0
             self._r_key = new_key
+            self._r_time = 0
         else:
             self._r_value = np.array([0.0] * len(_LABEL_HEADER))
             self._r_key = 0b0
@@ -248,7 +256,8 @@ class GestureController:
 
         # Control
         if r_value is None and l_value is not None:
-            return self.control()
+            if self._r_time > self._r_wait:
+                return self.control()
 
         # Mouse
         if r_value is not None and l_value is None and center is not None:
