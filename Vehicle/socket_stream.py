@@ -40,9 +40,10 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
             while True:
                 frame = cap.get_display_frame()
                 if frame is None:
+                    print("⚠️ frame None")  # ← 이거 추가
                     time.sleep(0.03)
                     continue
-
+                print(f"📤 sending frame")  # ← 이거도 추가
                 now = datetime.now(KST)
                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
 
