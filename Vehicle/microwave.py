@@ -5,7 +5,7 @@ class MicroWave:
         self.direction = direction
         self.distance_sensor = None
         self.mock_mode = False
-        self.threshold = 0.5  # 50cm 이내면 장애물로 판단
+        self.threshold = 0.2 # 50cm 이내면 장애물로 판단
 
     def connect(self):
         try:

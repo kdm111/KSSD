@@ -1,5 +1,5 @@
 import socket
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
 import cv2
@@ -48,7 +48,7 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
 
                 _, buffer = cv2.imencode('.jpg', frame)
                 img_data = buffer.tobytes()
-                
+
                 vehicle_state = vehicle.get_info()
                 vehicle_state["timestamp"] = timestamp
                 state_data = json.dumps(vehicle_state).encode('utf-8')
@@ -58,6 +58,8 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                 detections = cap.get_detections()
                 closest = min(detections, key=lambda d: d["distance_cm"]) if detections else {}
 
+                front_sensor = drive_manager.front_sensor
+                rear_sensor = drive_manager.rear_sensor
                 state_data = json.dumps({
                     **vehicle_state,
                     "save_path": save_path,
@@ -65,6 +67,10 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                     "confidence": closest.get("confidence", 0),
                     "distance_cm": closest.get("distance_cm", 0),
                     "bbox_area": (closest["bbox"][2]-closest["bbox"][0]) * (closest["bbox"][3]-closest["bbox"][1]) if closest.get("bbox") else None,
+                    "front_distance": front_sensor.get_distance(),   # ← 추가
+                    "rear_distance": rear_sensor.get_distance(),      # ← 추가
+                    "front_safe": front_sensor.is_safe(),             # ← 추가
+                    "rear_safe": rear_sensor.is_safe(),               # ← 추가
                 }).encode('utf-8')
 
                 vehicle_id_bytes = vehicle.id.encode('utf-8')
@@ -77,6 +83,7 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                     struct.pack(">L", len(state_data)) +  # 상태 크기
                     state_data +                          # 상태 JSON
                     struct.pack(">?", save_flag)          # bool 1바이트로 전송
+                    
                 )
         except BrokenPipeError:
             print("⚠️ Broken pipe - 재연결 시도")

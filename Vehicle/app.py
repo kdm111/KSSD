@@ -46,7 +46,7 @@ def get_key():
 def keyboard_listener(drive_manager):
     key_map = {
         'w': 'FOR', 's': 'BAK', 'a': 'LFT', 'd': 'RIT',
-        'e': 'FST', 'r': 'SLW', ' ': 'STP', 'x': 'SPN',
+        'e': 'FST', 'r': 'SLW', ' ': 'STP', 'p': 'SPN',
         'FOR': 'FOR', 'BAK': 'BAK', 'LFT': 'LFT', 'RIT': 'RIT',
         'FST': 'FST', 'SLW': 'SLW', 'STP': 'STP', 'SPN': 'SPN'
     }
