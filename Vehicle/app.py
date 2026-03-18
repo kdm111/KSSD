@@ -44,6 +44,8 @@ def keyboard_listener(drive_manager):
     key_map = {
         'w': 'FOR', 's': 'BAK', 'a': 'LFT', 'd': 'RIT',
         'e': 'FST', 'r': 'SLW', ' ': 'STP', 'x': 'SPN',
+        'FOR': 'FOR', 'BAK': 'BAK', 'LFT': 'LFT', 'RIT': 'RIT',
+        'FST': 'FST', 'SLW': 'SLW', 'STP': 'STP', 'SPN': 'SPN'
     }
     print("🎮 키보드: w/s/a/d/e/r/space/x/q")
     while True:
