@@ -21,16 +21,17 @@ def turn_left(vehicle):
     vehicle.status = 'TURN LEFT'
     vehicle.current_command = 'LFT'
     if not vehicle.mock_mode:
-        vehicle.motor_left.forward(vehicle.rot_speed)
-        vehicle.motor_right.forward(vehicle.min_speed)
+        vehicle.motor_left.forward(vehicle.min_speed)
+        vehicle.motor_right.forward(vehicle.rot_speed)
+
 
 
 def turn_right(vehicle):
     vehicle.status = 'TURN RIGHT'
     vehicle.current_command = 'RIT'
     if not vehicle.mock_mode:
-        vehicle.motor_left.forward(vehicle.min_speed)
-        vehicle.motor_right.forward(vehicle.rot_speed)
+        vehicle.motor_left.forward(vehicle.rot_speed)
+        vehicle.motor_right.forward(vehicle.min_speed)
 
 
 def stop(vehicle):
