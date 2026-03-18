@@ -125,6 +125,22 @@
           <div class="state-item"><div class="lbl">MODE</div><div class="val" id="vMock" style="font-size:.65rem">—</div></div>
         </div>
         <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:8px;margin-bottom:3px">
+            <div style="flex:1">
+              <div style="font-size:.43rem;letter-spacing:1px;color:var(--dim)">FRONT SENSOR</div>
+              <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
+                <div id="frontDot" style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+                <span id="vFrontDist" style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--green)">—</span>
+              </div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:.43rem;letter-spacing:1px;color:var(--dim)">REAR SENSOR</div>
+              <div style="display:flex;align-items:center;gap:4px;margin-top:1px">
+                <div id="rearDot" style="width:6px;height:6px;border-radius:50%;background:var(--green)"></div>
+                <span id="vRearDist" style="font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--green)">—</span>
+              </div>
+            </div>
+          </div>
           <div style="font-size:.45rem;color:var(--dim)">DEVICE: <span id="vDevice">—</span></div>
           <div style="font-size:.45rem;color:var(--dim)" id="vTimestamp">—</div>
         </div>
@@ -246,6 +262,12 @@ setInterval(async()=>{
     const m=document.getElementById('vMock');if(s.mock_mode){m.textContent='MOCK';m.style.color='var(--yellow)';}else{m.textContent='GPIO';m.style.color='var(--green)';}
     document.getElementById('vTimestamp').textContent=s.timestamp||'—';
     document.getElementById('vDevice').textContent=s.device_id||'—';
+    // 센서 표시
+    const fd=s.front_distance,rd=s.rear_distance,fs=s.front_safe,rs=s.rear_safe;
+    const fEl=document.getElementById('vFrontDist'),rEl=document.getElementById('vRearDist');
+    const fDot=document.getElementById('frontDot'),rDot=document.getElementById('rearDot');
+    if(fd!=null){fEl.textContent=(fd*100).toFixed(0)+'cm';fEl.style.color=fs?'var(--green)':'var(--red)';fDot.style.background=fs?'var(--green)':'var(--red)';}
+    if(rd!=null){rEl.textContent=(rd*100).toFixed(0)+'cm';rEl.style.color=rs?'var(--green)':'var(--red)';rDot.style.background=rs?'var(--green)':'var(--red)';}
     if(s.session_id){document.getElementById('sessionInfo').textContent=`SESSION: ${s.session_id}`;document.getElementById('footerSession').textContent=`${s.device_id} / ${s.session_id}`;}
     if(!car.x)initCarPos();const cmd=s.current_command||'',spd=s.speed||.5;car.speed=spd;
     if(cmd!==lastCmd){lastCmd=cmd;if(!cmd||cmd==='STP'||s.status==='READY')stopAutoMove();else startAutoMove(cmd,spd);}
