@@ -19,6 +19,12 @@ def get_all():
 # gesture
 # init
 def gesture_init_log():
+    existing_count = Gesture.select().count()
+
+    # 2. 데이터가 0개가 아닐 경우 (이미 있다면) 실행하지 않고 종료
+    if existing_count > 0:
+        return
+
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     specific_actions = {
         'w': 'FOR',
@@ -72,7 +78,7 @@ def get_gesture_id(gesture:str):
         # 만약 해당 제스처가 DB에 없다면 처리
         return None
 
-# action_map 가져오기
+# gesture -> action_map 가져오기
 def get_gesture_action(gesture:str):
     try:
         record = Gesture.select(Gesture.action_map).where(Gesture.gesture == gesture).get()
@@ -81,6 +87,15 @@ def get_gesture_action(gesture:str):
         # 만약 해당 제스처가 DB에 없다면 처리
         return None
 
+# id -> action_map 가져오기
+def get_id_action(id:int):
+    try:
+        record = Gesture.select(Gesture.action_map).where(Gesture.id == id).get()
+        return record.action_map
+    except Gesture.DoesNotExist:
+        # 만약 해당 제스처가 DB에 없다면 처리
+        return None
+        
 # DB안에있는 gesture 확인
 def check_gesture_exists(gesture:str) -> bool:
     exists = Gesture.select().where(Gesture.gesture == gesture).exists()

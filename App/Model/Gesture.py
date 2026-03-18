@@ -8,17 +8,16 @@ _RAW_TO_GESTURE = {
     # reset
     0b0000000: 0,
     # thumbs ~ little
-    0b1000000: 1,
-    0b1100000: 2,
-    0b1110000: 3,
-    0b1111000: 4,
+    0b0100000: 1,
+    0b0110000: 2,
+    0b0111000: 3,
+    0b0111100: 4,
     0b1111100: 5,
-    0b0111100: 6,
+    0b1000000: 6,
     # 따로따로 손피는거
-    0b0100000: 7,
-    0b0010000: 8,
-    0b0001000: 9,
-    0b0000100: 10,
+    0b0010000: 7,
+    0b0001000: 8,
+    0b0000100: 9
 }
 
 _DATA_HEADER = [
@@ -132,10 +131,10 @@ class GestureController:
             
             self._l_used = self._r_used = True
 
-            r_v = _RAW_TO_GESTURE.get(self._r_key, None)
-            l_v = _RAW_TO_GESTURE.get(self._l_key, None)
+            r_v = _RAW_TO_GESTURE.get(self._r_key, 0)
+            l_v = _RAW_TO_GESTURE.get(self._l_key, 0)
             if 1 <= r_v <= 6 and 1 <= l_v <=6 :
-                return (r_v - 1 * 6) + l_v - 1
+                return ((r_v - 1) * 6) + l_v - 1
 
 
             # tmp = self.alphabet_map.get(_RAW_TO_GESTURE.get(self._r_key, None), None)

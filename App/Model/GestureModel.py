@@ -38,7 +38,7 @@ class GestureModel:
         # self.lstm_path = './Model/test_lstm_model.h5'
         
         self.knn = None
-        self.key = -1
+        self.key = None
         self.interpreter = tf.lite.Interpreter(model_path="./Model/test_lstm_model.tflite")
         self.interpreter.allocate_tensors()
         self.input_details = self.interpreter.get_input_details()

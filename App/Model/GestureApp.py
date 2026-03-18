@@ -17,6 +17,7 @@ from DB import update_gesture_log
 from DB import get_gesture_id
 from DB import check_gesture_exists
 from DB import get_gesture_all
+from DB import get_id_action
 
 from .GestureModel import GestureModel
 from .TimeManager import TimeManager
@@ -200,6 +201,11 @@ class GestureApp:
                 self.model.reset_memory()
                 self.model.gesture_controller.update({}, None)
                 display_image = frame
+            
+            # todo
+            if self.model.get_key()!=None:
+                print(f"키값 : {self.model.get_key()+1}")
+                print(f"액션값 : {get_id_action(self.model.get_key()+1)}")
 
             current_result = self.read_data()
             if prev != current_result and tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
