@@ -54,18 +54,29 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                 state_data = json.dumps(vehicle_state).encode('utf-8')
 
                 save_flag, save_path = cap.get_save_info()
+                # 가장 가까운 detection 정보를 state에 포함
+                detections = cap.get_detections()
+                closest = min(detections, key=lambda d: d["distance_cm"]) if detections else {}
+
                 state_data = json.dumps({
                     **vehicle_state,
-                    "save_path": save_path  # None 또는 파일명
+                    "save_path": save_path,
+                    "label": closest.get("label", ""),
+                    "confidence": closest.get("confidence", 0),
+                    "distance_cm": closest.get("distance_cm", 0),
+                    "bbox_area": (closest["bbox"][2]-closest["bbox"][0]) * (closest["bbox"][3]-closest["bbox"][1]) if closest.get("bbox") else None,
                 }).encode('utf-8')
 
+                vehicle_id_bytes = vehicle.id.encode('utf-8')
                 sock.sendall(
+                    struct.pack(">L", len(vehicle_id_bytes)) +      # ← 먼저 크기 4바이트
+                    vehicle_id_bytes +   
                     struct.pack(">L", len(img_data)) +    # 이미지 크기
                     timestamp.encode('utf-8') +            # 23바이트
                     img_data +                             # 이미지
                     struct.pack(">L", len(state_data)) +  # 상태 크기
                     state_data +                          # 상태 JSON
-                    struct.pack(">?", save_flag)  # bool 1바이트로 전송
+                    struct.pack(">?", save_flag)          # bool 1바이트로 전송
                 )
         except BrokenPipeError:
             print("⚠️ Broken pipe - 재연결 시도")
