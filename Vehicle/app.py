@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     front_distance_sensor.connect()
     rear_distance_sensor.connect()  
     drive_manager = DriveManager(vehicle, front_distance_sensor, rear_distance_sensor, cap)
-    drive_manager.start_safety_monitor()
+    #drive_manager.start_safety_monitor()
     # 키보드 스레드
     threading.Thread(target=keyboard_listener, args=(drive_manager,), daemon=True).start()
 
