@@ -52,7 +52,7 @@ class Vehicle:
             self.commands[command_name](self)  # speed_up/down 반영을 위해 호출
             print(f"🎮 [Mock] {command_name} (speed: {self.speed})")
             return {"executed": command_name, "mock": True, "speed": self.speed}
-
+        
         self.commands[command_name](self)
         return {"executed": command_name, "speed": self.speed, "status": self.status}
     
