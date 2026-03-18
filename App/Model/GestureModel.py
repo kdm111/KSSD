@@ -38,7 +38,7 @@ class GestureModel:
         # self.lstm_path = './Model/test_lstm_model.h5'
         
         self.knn = None
-
+        self.key = -1
         self.interpreter = tf.lite.Interpreter(model_path="./Model/test_lstm_model.tflite")
         self.interpreter.allocate_tensors()
         self.input_details = self.interpreter.get_input_details()
@@ -165,57 +165,55 @@ class GestureModel:
             else :
                 results['left'] = pred
 
-
             
             # 기존모델
-            # TODO Restore
-            # self.sequence.append(full_data)
-            # self.sequence = self.sequence[-self.seq_length:] 
+            self.sequence.append(full_data)
+            self.sequence = self.sequence[-self.seq_length:] 
 
-            # if hand_label == "Left": # 좌우반전기준 오른손
-            #     if not self.is_predicting and len(self.sequence) == self.seq_length:
-            #         # 별도 스레드에서 돌려서 메인 루프(화면 출력)를 방해하지 않음
-            #         thread = threading.Thread(target=self.LSTM_Predict)
-            #         thread.daemon = True
-            #         thread.start()
-            #     else:
-            #         self.current_label=''
-            # else:
-            #     if len(self.action_seq) > self.action_length:
-            #         self.action_seq.pop(0)
+            if hand_label == "Left": # 좌우반전기준 오른손
+                if not self.is_predicting and len(self.sequence) == self.seq_length:
+                    # 별도 스레드에서 돌려서 메인 루프(화면 출력)를 방해하지 않음
+                    thread = threading.Thread(target=self.LSTM_Predict)
+                    thread.daemon = True
+                    thread.start()
+                else:
+                    self.current_label=''
+            else:
+                if len(self.action_seq) > self.action_length:
+                    self.action_seq.pop(0)
                     
-            #     self.action_seq.append(-1)
+                self.action_seq.append(-1)
             
 
-            # threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
-            # display_text = ""
-            # # KNN 추론
-            # if self.knn is not None:
-            #     data = np.array([full_data], dtype=np.float32)
-            #     ret, results, neighbours, dist = self.knn.findNearest(data, 3)
-            #     idx = int(results[0][0])
+            threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
+            display_text = ""
+            # KNN 추론
+            if self.knn is not None:
+                data = np.array([full_data], dtype=np.float32)
+                ret, results, neighbours, dist = self.knn.findNearest(data, 3)
+                idx = int(results[0][0])
 
-            #     if dist[0][0] < threshold:
-            #         if idx in gesture_names:
-            #             display_text += f"{gesture_names[idx]}"
+                if dist[0][0] < threshold:
+                    if idx in gesture_names:
+                        display_text += f"{gesture_names[idx]}"
             
             # 텍스트 위치 선정 (바운딩 박스 상단)
-            # height, width, _ = annotated_image.shape
-            # x_coords = [landmark.x for landmark in hand_landmarks]
-            # y_coords = [landmark.y for landmark in hand_landmarks]
-            # text_x = int(min(x_coords) * width)
-            # text_y = int(min(y_coords) * height) - MARGIN
+            height, width, _ = annotated_image.shape
+            x_coords = [landmark.x for landmark in hand_landmarks]
+            y_coords = [landmark.y for landmark in hand_landmarks]
+            text_x = int(min(x_coords) * width)
+            text_y = int(min(y_coords) * height) - MARGIN
 
-            # if len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
-            #     self.insert_signal = display_text
+            if len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
+                self.insert_signal = display_text
 
-            # self.insert_new_data = full_data
+            self.insert_new_data = full_data
             
-            # cv2.putText(annotated_image, display_text, (text_x, text_y), 
-            #             cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
+            cv2.putText(annotated_image, display_text, (text_x, text_y), 
+                        cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
 
-        # TODO
-        self.gesture_controller.update(results, results.get('center', None))
+        # TODO Return : Key (int , [0, 36) | None)
+        self.key = self.gesture_controller.update(results, results.get('center', None))
         return annotated_image
 
     def reload(self):
@@ -303,3 +301,6 @@ class GestureModel:
     def reset_memory(self):
         self.sequence = []  # 기억 삭제
         self.current_label = ''
+
+    def get_key(self):
+        return self.key

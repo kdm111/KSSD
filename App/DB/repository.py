@@ -1,4 +1,5 @@
 import time
+import string
 from .models import Log
 from .models import Gesture
 from datetime import datetime
@@ -16,6 +17,25 @@ def get_all():
     return Log.select()
 
 # gesture
+# init
+def gesture_init_log():
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    specific_actions = {
+        'w': 'FOR',
+        's': 'BAK',
+        'a': 'LFT',
+        'd': 'RIT',
+        'x': 'STP'
+    }
+    alphabets = string.ascii_lowercase
+    for alpha in alphabets:
+        action = specific_actions.get(alpha, None)
+        Gesture.create(timestamp=timestamp,gesture=alpha,action_map=action)
+    
+    numbers = string.digits
+    for num in numbers:
+        Gesture.create(timestamp=timestamp, gesture=num, action_map=None)
+
 # insert
 def insert_gesture_log(gesture: str, action: str):
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

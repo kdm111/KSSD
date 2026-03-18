@@ -19,7 +19,7 @@ class Log(BaseModel):
 class Gesture(BaseModel):
     timestamp = TextField()
     gesture = CharField()
-    action_map = CharField()
+    action_map = CharField(null=True)
     class Meta:
         table_name = 'gesture'
 

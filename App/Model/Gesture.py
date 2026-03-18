@@ -2,6 +2,7 @@ import numpy as np
 import threading
 from time import time, sleep
 from gcc import Keyboard, Mouse
+# , GCC
 
 _RAW_TO_GESTURE = {
     # reset
@@ -130,13 +131,20 @@ class GestureController:
                 return None
             
             self._l_used = self._r_used = True
-            tmp = self.alphabet_map.get(_RAW_TO_GESTURE.get(self._r_key, None), None)
-            if tmp is not None:
-                indx = _RAW_TO_GESTURE.get(self._l_key, 0) - 1
-                if 0 <= indx < 6:
-                    key = tmp[indx]
-                    if key is not 0:
-                        Keyboard.press_key(key)
+
+            r_v = _RAW_TO_GESTURE.get(self._r_key, None)
+            l_v = _RAW_TO_GESTURE.get(self._l_key, None)
+            if 1 <= r_v <= 6 and 1 <= l_v <=6 :
+                return (r_v - 1 * 6) + l_v - 1
+
+
+            # tmp = self.alphabet_map.get(_RAW_TO_GESTURE.get(self._r_key, None), None)
+            # if tmp is not None:
+            #     indx = _RAW_TO_GESTURE.get(self._l_key, 0) - 1
+            #     if 0 <= indx < 6:
+            #         key = tmp[indx]
+            #         if key is not 0:
+            #             Keyboard.press_key(key)
 
         return None
 
@@ -184,6 +192,19 @@ class GestureController:
         # print((d_pos[0] * 254).astype(int), (d_pos[1] * 254).astype(int))
         self._center = center
 
+    def control(self):
+        # GCC.RefreshDevices()
+        # devices = GCC.GetAllConnectedDevices()
+
+        # # Unable jesture
+        # if self._l_key & 0b0001111:
+        #     return
+
+        # if 0 <= self._l_key < len(devices):
+        #     devices[self._l_key]
+        pass
+
+
     """
     Return:
         keyboard key
@@ -228,11 +249,10 @@ class GestureController:
 
         # Control
         if r_value is None and l_value is not None:
-            # TODO
-            pass
+            return self.control()
 
         # Mouse
         if r_value is not None and l_value is None and center is not None:
-            self.mouse(center, dt)
+            return self.mouse(center, dt)
 
         # print(self._wait, self.sensitive)

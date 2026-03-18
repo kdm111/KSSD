@@ -9,7 +9,7 @@ from Model import GestureApp
 from DB import db
 from Socket.socket_server import socket_server
 from Socket.socket_server import generate_server
-
+from DB import gesture_init_log
 #from flask_socketio import SocketIO
 
 app = Flask(__name__)
@@ -90,6 +90,7 @@ if __name__ == '__main__':
 
     db.connect()
 
+    gesture_init_log()
     cap = Cap(0)
 
     data_path = "data_test.csv"
