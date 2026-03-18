@@ -25,7 +25,7 @@ front_distance_sensor = MicroWave("FRONT")
 rear_distance_sensor = MicroWave("REAR")
 cap = Cap(0)
 
-PC_IP = "10.10.14.1"  # PC Flask가 돌아가는 IP
+PC_IP = "192.168.100.114"  # PC Flask가 돌아가는 IP
 PC_PORT = 9999
 KST = ZoneInfo("Asia/Seoul")
 
