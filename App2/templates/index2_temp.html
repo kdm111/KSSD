@@ -3,456 +3,274 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GestureDrive - Phase 02</title>
+  <title>GestureDrive — Control Center</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet"/>
   <style>
-    :root{--bg:#04080f;--panel:#080f1a;--border:#0f2236;--accent:#00d4ff;--green:#00ff9d;--red:#ff3d5a;--yellow:#ffd93d;--dim:#1e4060;--text:#a8d8ea}
+    :root{--bg:#04080f;--panel:#080f1a;--border:#0f2236;--accent:#00d4ff;--green:#00ff9d;--red:#ff3d5a;--yellow:#ffd93d;--dim:#1e4060;--text:#a8d8ea;--card:#0a1320}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden}
-    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
-    body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,.015) 2px,rgba(0,212,255,.015) 4px);pointer-events:none;z-index:999}
-    .shell{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:1.5rem;display:grid;grid-template-rows:auto auto 1fr auto;gap:1.2rem;min-height:100vh}
-    header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:1rem}
-    .logo{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;letter-spacing:6px;color:var(--accent);text-shadow:0 0 20px rgba(0,212,255,.5)}
+    html,body{width:100vw;height:100vh;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace}
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.03) 1px,transparent 1px);background-size:48px 48px;pointer-events:none}
+
+    .shell{width:100%;height:100vh;display:grid;grid-template-rows:44px 1fr 24px;padding:8px 12px;gap:6px}
+
+    header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);padding-bottom:4px}
+    .logo{font-family:'Orbitron',sans-serif;font-size:clamp(.9rem,1.2vw,1.3rem);font-weight:900;letter-spacing:5px;color:var(--accent);text-shadow:0 0 14px rgba(0,212,255,.4)}
     .logo em{color:var(--green);font-style:normal}
-    .badge{font-size:.65rem;letter-spacing:2px}.badge.on{color:var(--green)}.badge.off{color:var(--red)}
-    .tab-bar{display:flex;gap:0;border-bottom:1px solid var(--border)}
-    .tab-btn{padding:.7rem 1.5rem;font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;letter-spacing:3px;color:var(--dim);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .3s}
-    .tab-btn:hover{color:var(--text)}.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);text-shadow:0 0 10px rgba(0,212,255,.4)}
-    .tab-panel{display:none;height:100%}.tab-panel.active{display:block}
-    .main{display:grid;grid-template-columns:1fr 340px;gap:.8rem}
-    .video-panel{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#000}
-    .video-panel::before{content:'CAR LIVE CAMERA';position:absolute;top:12px;left:14px;z-index:2;font-size:.6rem;letter-spacing:3px;color:var(--green)}
-    .video-panel img{width:100%;display:block;filter:contrast(1.1) brightness(.9)}
-    .corner{position:absolute;width:18px;height:18px;z-index:3}.corner.tl{top:6px;left:6px;border-top:2px solid var(--accent);border-left:2px solid var(--accent)}.corner.br{bottom:6px;right:6px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent)}
-    .side{display:flex;flex-direction:column;gap:1rem}
-    .card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:1.1rem;position:relative}
-    .card-title{font-size:.6rem;letter-spacing:3px;color:var(--dim);margin-bottom:.9rem;text-transform:uppercase}
-    .btn-nav{width:100%;padding:1rem;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .3s}
-    .btn-nav:hover{background:rgba(0,212,255,.1);box-shadow:0 0 15px rgba(0,212,255,.4);transform:translateY(-2px)}
-    .map-layout{display:grid;grid-template-columns:1fr 320px;gap:.8rem;height:calc(100vh - 220px)}
-    .map-area{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#000}
-    .map-area::before{content:'EXPLORATION MAP';position:absolute;top:12px;left:14px;z-index:2;font-size:.6rem;letter-spacing:3px;color:var(--green)}
-    .map-canvas-wrap{width:100%;height:100%;overflow:auto}
-    #mapCanvas{display:block;cursor:crosshair}
-    .map-hud{position:absolute;bottom:10px;left:10px;font-size:.6rem;letter-spacing:1px;color:var(--dim);background:rgba(4,8,15,.85);padding:6px 10px;border-radius:3px;border:1px solid var(--border);z-index:5}
-    .map-legend{position:absolute;bottom:10px;right:10px;font-size:.6rem;color:var(--dim);background:rgba(4,8,15,.85);padding:6px 10px;border-radius:3px;border:1px solid var(--border);display:flex;gap:14px;z-index:5}
-    .legend-item{display:flex;align-items:center;gap:5px}.legend-dot{width:8px;height:8px;border-radius:50%}
-    .map-toolbar{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:5}
-    .map-btn{padding:5px 10px;font-size:.6rem;font-family:'JetBrains Mono',monospace;letter-spacing:1px;background:var(--panel);color:var(--accent);border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s}
-    .map-btn:hover{background:var(--border);box-shadow:0 0 8px rgba(0,212,255,.3)}
-    .event-list{flex:1;overflow-y:auto}
-    .event-card{padding:.7rem .8rem;margin-bottom:.5rem;background:var(--panel);border:1px solid var(--border);border-radius:4px;cursor:pointer;transition:border-color .2s;font-size:.7rem}
-    .event-card:hover{border-color:var(--accent)}.event-card.sig{border-left:3px solid var(--red)}
-    .event-time{font-size:.6rem;color:var(--dim);margin-bottom:3px}.event-label{font-weight:600;color:var(--accent)}.event-detail{font-size:.6rem;color:var(--dim);margin-top:2px}
+    .hdr-right{display:flex;align-items:center;gap:clamp(8px,1.2vw,18px)}
+    .badge{font-size:.55rem;letter-spacing:2px}.badge.on{color:var(--green)}.badge.off{color:var(--red)}
+    .session-info{font-size:.5rem;letter-spacing:1px;color:var(--dim)}
+
+    /* 3-column: left fixed, center flex, right fixed */
+    .main{display:grid;grid-template-columns:minmax(240px,280px) 1fr minmax(260px,320px);gap:8px;overflow:hidden;min-width:0}
+
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:8px 10px}
+    .card-title{font-size:.5rem;letter-spacing:3px;color:var(--dim);margin-bottom:6px;text-transform:uppercase}
+
+    .left,.right{display:flex;flex-direction:column;gap:6px;overflow:hidden;min-width:0}
+    .center{display:flex;flex-direction:column;gap:6px;overflow:hidden;min-width:0}
+
+    /* VIDEO */
+    .video-panel{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#000;flex:1;min-height:0}
+    .video-panel::before{content:'CAR LIVE CAMERA';position:absolute;top:6px;left:8px;z-index:2;font-size:.45rem;letter-spacing:3px;color:var(--green)}
+    .video-panel img{width:100%;height:100%;object-fit:contain;display:block;filter:contrast(1.08) brightness(.92)}
+    .corner{position:absolute;width:12px;height:12px;z-index:3}
+    .corner.tl{top:3px;left:3px;border-top:2px solid var(--accent);border-left:2px solid var(--accent)}
+    .corner.br{bottom:3px;right:3px;border-bottom:2px solid var(--accent);border-right:2px solid var(--accent)}
+
+    /* MAP */
+    .map-panel{position:relative;border:1px solid var(--border);border-radius:4px;overflow:hidden;background:#000;height:clamp(200px,30vh,340px);flex-shrink:0}
+    .map-panel::before{content:'TRACKING MAP';position:absolute;top:6px;left:8px;z-index:2;font-size:.45rem;letter-spacing:3px;color:var(--green)}
+    #mapCanvas{width:100%;height:100%;display:block;cursor:crosshair}
+    .map-hud{position:absolute;bottom:4px;left:6px;font-size:.45rem;color:var(--dim);background:rgba(4,8,15,.85);padding:3px 6px;border-radius:3px;border:1px solid var(--border);z-index:5}
+    .map-toolbar{position:absolute;top:4px;right:6px;display:flex;gap:3px;z-index:5}
+    .map-btn{padding:2px 6px;font-size:.45rem;font-family:inherit;background:var(--panel);color:var(--accent);border:1px solid var(--border);border-radius:3px;cursor:pointer}
+    .map-btn:hover{background:var(--border)}
+
+    /* STATE */
+    .state-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .state-item .lbl{font-size:.45rem;letter-spacing:2px;color:var(--dim)}
+    .state-item .val{font-family:'Orbitron',sans-serif;font-size:clamp(.7rem,.9vw,.95rem);margin-top:1px}
+
+    /* CONTROLS */
+    select,input[type=number]{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-family:inherit;padding:5px 6px;border-radius:3px;font-size:.65rem}
+    input[type=number]{color:var(--green);font-family:'Orbitron',monospace;font-size:.8rem}
+    .btn-exec{width:100%;padding:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Orbitron',sans-serif;font-weight:700;font-size:.55rem;letter-spacing:2px;cursor:pointer;border-radius:3px;transition:all .2s}
+    .btn-exec:hover{background:rgba(0,212,255,.08);box-shadow:0 0 10px rgba(0,212,255,.3)}
+    .btn-nav{width:100%;padding:5px;background:transparent;border:1px solid var(--red);color:var(--red);font-family:'Orbitron',sans-serif;font-weight:700;font-size:.5rem;letter-spacing:2px;cursor:pointer;border-radius:3px}
+    .btn-nav:hover{background:rgba(255,61,90,.08)}
+
+    /* LOG */
+    .log-list{flex:1;overflow-y:auto;min-height:0}
+    .log-item{display:flex;align-items:center;gap:4px;padding:4px 6px;margin-bottom:2px;font-size:.55rem;border-left:2px solid var(--border);background:var(--card);border-radius:0 3px 3px 0}
+    .log-item.manual{border-left-color:var(--accent)}
+    .log-item.pc{border-left-color:var(--yellow)}
+    .log-body{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center}
+    .log-time{color:var(--dim);font-size:.45rem}
+    .log-cmd{color:var(--accent);font-weight:600}
+    .log-dur{color:var(--dim)}
+    .log-src{font-size:.43rem;padding:1px 3px;border-radius:2px}
+    .log-src.manual{background:rgba(0,212,255,.1);color:var(--accent)}
+    .log-src.pc{background:rgba(255,217,61,.1);color:var(--yellow)}
+    .log-actions{display:flex;gap:2px;flex-shrink:0}
+    .log-btn{padding:2px 5px;font-size:.45rem;font-family:inherit;border-radius:2px;cursor:pointer;border:1px solid;transition:all .15s;background:transparent}
+    .log-btn.undo{border-color:var(--red);color:var(--red)}
+    .log-btn.undo:hover{background:rgba(255,61,90,.12)}
+    .log-btn.redo{border-color:var(--green);color:var(--green)}
+    .log-btn.redo:hover{background:rgba(0,255,157,.12)}
+    .log-btn:disabled{opacity:.3;cursor:default}
+
+    /* EVENTS */
+    .event-card{padding:5px 6px;margin-bottom:2px;background:var(--card);border:1px solid var(--border);border-radius:3px;cursor:pointer;font-size:.55rem;border-left:3px solid var(--red)}
+    .event-card:hover{border-color:var(--accent)}
+    .event-time{font-size:.45rem;color:var(--dim)}.event-label{color:var(--accent);font-weight:600}.event-detail{font-size:.45rem;color:var(--dim);margin-top:1px}
+    .det-tag{display:inline-block;padding:1px 5px;border-radius:2px;font-size:.45rem}
+    .det-tag.red{background:rgba(255,61,90,.15);color:var(--red)}.det-tag.yellow{background:rgba(255,217,61,.12);color:var(--yellow)}.det-tag.green{background:rgba(0,255,157,.12);color:var(--green)}
+
+    footer{display:flex;justify-content:space-between;align-items:center;font-size:.45rem;letter-spacing:2px;color:var(--dim);border-top:1px solid var(--border);padding-top:3px}
+
+    /* MODAL */
     .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center}
     .modal-overlay.active{display:flex}
-    .modal-box{background:var(--panel);border:1px solid var(--accent);border-radius:6px;max-width:90vw;max-height:90vh;overflow:hidden;position:relative;box-shadow:0 0 40px rgba(0,212,255,.2)}
-    .modal-close{position:absolute;top:8px;right:10px;font-size:1.4rem;color:var(--dim);cursor:pointer;background:rgba(0,0,0,.6);width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:50%;z-index:10}
+    .modal-box{background:var(--panel);border:1px solid var(--accent);border-radius:6px;max-width:85vw;max-height:85vh;overflow:hidden;position:relative;box-shadow:0 0 40px rgba(0,212,255,.2)}
+    .modal-close{position:absolute;top:6px;right:8px;font-size:1.1rem;color:var(--dim);cursor:pointer;background:rgba(0,0,0,.5);width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:50%;z-index:10}
     .modal-close:hover{color:var(--text)}
-    .modal-box img{max-width:85vw;max-height:70vh;display:block}
-    .modal-detections{padding:8px 14px;font-size:.6rem;color:var(--text);border-top:1px solid var(--border)}
-    .det-tag{display:inline-block;padding:2px 8px;margin:2px;border-radius:3px;font-size:.6rem;letter-spacing:1px}
-    .det-tag.red{background:rgba(255,61,90,.2);color:var(--red);border:1px solid rgba(255,61,90,.3)}
-    .det-tag.yellow{background:rgba(255,217,61,.15);color:var(--yellow);border:1px solid rgba(255,217,61,.3)}
-    .det-tag.green{background:rgba(0,255,157,.15);color:var(--green);border:1px solid rgba(0,255,157,.3)}
-    .modal-info{padding:10px 14px;font-size:.65rem;color:var(--dim);border-top:1px solid var(--border);letter-spacing:1px}
-    footer{border-top:1px solid var(--border);padding-top:.8rem;display:flex;justify-content:space-between;font-size:.6rem;letter-spacing:2px;color:var(--dim)}
+    .modal-box img{max-width:80vw;max-height:70vh;display:block}
+    .modal-detections{padding:5px 10px;font-size:.5rem;color:var(--text);border-top:1px solid var(--border)}
+    .modal-info{padding:5px 10px;font-size:.5rem;color:var(--dim);border-top:1px solid var(--border)}
+
+    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
   </style>
 </head>
 <body>
 <div class="shell">
   <header>
-    <div class="logo">LIVE<em>CAMERA</em></div>
-    <div class="badge on" id="socketBadge">● SOCKET ACTIVE</div>
+    <div class="logo">GESTURE<em>DRIVE</em></div>
+    <div class="hdr-right">
+      <div class="session-info" id="sessionInfo">SESSION: —</div>
+      <div class="badge on" id="socketBadge">● CONNECTED</div>
+      <div style="font-size:.5rem;color:var(--dim)" id="clock">00:00:00</div>
+    </div>
   </header>
 
-  <div class="tab-bar">
-    <button class="tab-btn active" data-tab="camera">CAMERA</button>
-    <button class="tab-btn" data-tab="map">TRACKING MAP</button>
-  </div>
-
-  <!-- ===== CAMERA TAB ===== -->
-  <div class="tab-panel active" id="tab-camera">
-    <div class="main">
-      <div class="video-panel">
-        <div class="corner tl"></div><div class="corner br"></div>
-        <img src="{{ url_for('video_feed2') }}" alt="Feed"/>
+  <div class="main">
+    <!-- LEFT -->
+    <div class="left">
+      <div class="card">
+        <div class="card-title">// vehicle state</div>
+        <div class="state-grid">
+          <div class="state-item"><div class="lbl">COMMAND</div><div class="val" id="vCommand" style="color:var(--accent)">—</div></div>
+          <div class="state-item"><div class="lbl">SPEED</div><div class="val" id="vSpeed" style="color:var(--green)">—</div></div>
+          <div class="state-item"><div class="lbl">STATUS</div><div class="val" id="vStatus" style="font-size:.65rem;color:var(--text)">—</div></div>
+          <div class="state-item"><div class="lbl">MODE</div><div class="val" id="vMock" style="font-size:.65rem">—</div></div>
+        </div>
+        <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+          <div style="font-size:.45rem;color:var(--dim)">DEVICE: <span id="vDevice">—</span></div>
+          <div style="font-size:.45rem;color:var(--dim)" id="vTimestamp">—</div>
+        </div>
       </div>
-      <div class="side">
-        <div class="card">
-          <div class="card-title">// CHANNEL INFO</div>
-          <p style="font-size:.8rem;color:var(--accent)">REMOTE SOURCE: CONNECTED</p>
-          <p style="font-size:.7rem;margin-top:5px;color:var(--dim)">PROTOCOL: TCP/IP SOCKET</p>
+      <div class="card" style="flex:1">
+        <div class="card-title">// send command</div>
+        <div style="margin-bottom:5px"><div style="font-size:.45rem;letter-spacing:2px;color:var(--dim);margin-bottom:3px">COMMAND</div>
+          <select id="cmdSelect"><option value="FOR">FORWARD</option><option value="BAK">BACKWARD</option><option value="LFT">LEFT</option><option value="RIT">RIGHT</option><option value="SPN">SPIN</option><option value="STP">STOP</option></select>
         </div>
-        <div class="card">
-          <div class="card-title">// VEHICLE STATE</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
-            <div><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim)">COMMAND</div><div id="vCommand" style="font-family:'Orbitron',sans-serif;font-size:1.2rem;color:var(--accent);margin-top:4px">—</div></div>
-            <div><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim)">SPEED</div><div id="vSpeed" style="font-family:'Orbitron',sans-serif;font-size:1.2rem;color:var(--green);margin-top:4px">—</div></div>
-            <div><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim)">STATUS</div><div id="vStatus" style="font-size:.75rem;color:var(--text);margin-top:4px">—</div></div>
-            <div><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim)">MODE</div><div id="vMock" style="font-size:.75rem;margin-top:4px">—</div></div>
-          </div>
-          <div style="margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--border)">
-            <div style="font-size:.55rem;letter-spacing:2px;color:var(--dim)">LAST UPDATED</div>
-            <div id="vTimestamp" style="font-size:.65rem;color:var(--dim);margin-top:4px">—</div>
-          </div>
+        <div style="margin-bottom:5px"><div style="font-size:.45rem;letter-spacing:2px;color:var(--dim);margin-bottom:3px">DURATION (SEC)</div>
+          <input id="cmdDuration" type="number" value="1.0" min="0.1" max="10" step="0.1"/>
         </div>
-        <div class="card">
-          <div class="card-title">// SEND COMMAND</div>
-          <div style="margin-bottom:.8rem"><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim);margin-bottom:6px">COMMAND</div>
-            <select id="cmdSelect" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--accent);font-family:'JetBrains Mono',monospace;padding:8px;border-radius:3px">
-              <option value="FOR">FORWARD</option><option value="BAK">BACKWARD</option><option value="LFT">LEFT</option><option value="RIT">RIGHT</option><option value="SPN">SPIN</option><option value="STP">STOP</option>
-            </select>
-          </div>
-          <div style="margin-bottom:.8rem"><div style="font-size:.55rem;letter-spacing:2px;color:var(--dim);margin-bottom:6px">DURATION (SEC)</div>
-            <input id="cmdDuration" type="number" value="1.0" min="0.1" max="10" step="0.1" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--green);font-family:'Orbitron',monospace;padding:8px;border-radius:3px;font-size:1rem"/>
-          </div>
-          <button id="cmdSendBtn" onclick="sendTimedCommand()" style="width:100%;padding:.8rem;background:transparent;border:1px solid var(--accent);color:var(--accent);font-family:'Orbitron',sans-serif;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .3s;border-radius:3px">▶ EXECUTE</button>
-          <div id="cmdResult" style="margin-top:.6rem;font-size:.65rem;color:var(--dim);min-height:1rem"></div>
-        </div>
-        <div class="card" style="border-color:var(--red)"><div class="card-title">// NAVIGATION</div>
-          <button class="btn-nav" onclick="location.href='/'" style="border-color:var(--red);color:var(--red)">RETURN TO MAIN PHASE</button>
-        </div>
+        <button class="btn-exec" id="cmdSendBtn" onclick="sendTimedCommand()">▶ EXECUTE</button>
+        <div id="cmdResult" style="margin-top:3px;font-size:.5rem;color:var(--dim);min-height:12px"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">// motion planner</div>
+        <button class="btn-exec" onclick="returnHome()" style="margin-bottom:3px;border-color:var(--green);color:var(--green)">⟵ RETURN HOME</button>
+        <button class="btn-exec" onclick="replaySession()" style="margin-bottom:3px;border-color:var(--yellow);color:var(--yellow)">↻ REPLAY</button>
+        <button class="btn-exec" onclick="cancelPlan()" style="border-color:var(--red);color:var(--red)">■ CANCEL</button>
+        <div id="planStatus" style="margin-top:3px;font-size:.5rem;color:var(--dim);min-height:12px"></div>
+      </div>
+      <button class="btn-nav" onclick="location.href='/'">← MAIN PHASE</button>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center">
+      <div class="video-panel"><div class="corner tl"></div><div class="corner br"></div>
+        <img src="{{ url_for('video_feed2') }}" alt="Feed"/></div>
+      <div class="map-panel"><div class="corner tl"></div><div class="corner br"></div>
+        <div class="map-toolbar"><button class="map-btn" onclick="resetMap()">RESET</button><button class="map-btn" onclick="centerMap()">CENTER</button></div>
+        <canvas id="mapCanvas"></canvas>
+        <div class="map-hud" id="mapHud">POS:(0,0) | HDG:0°</div></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="right">
+      <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="card-title">// command log <span id="cmdLogCount" style="color:var(--accent)">(0)</span></div>
+        <div class="log-list" id="cmdLogList"></div>
+      </div>
+      <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+        <div class="card-title">// detections <span id="eventCount" style="color:var(--red)">(0)</span></div>
+        <div class="log-list" id="eventList"></div>
       </div>
     </div>
   </div>
 
-  <!-- ===== MAP TAB ===== -->
-  <div class="tab-panel" id="tab-map">
-    <div class="map-layout">
-      <div class="map-area">
-        <div class="corner tl"></div><div class="corner br"></div>
-        <div class="map-toolbar">
-          <button class="map-btn" onclick="resetMap()">RESET</button>
-          <button class="map-btn" onclick="centerMap()">CENTER</button>
-        </div>
-        <div class="map-canvas-wrap" id="mapWrap">
-          <canvas id="mapCanvas" width="2000" height="2000"></canvas>
-        </div>
-        <div class="map-hud" id="mapHud">POS: (0, 0) | HDG: 0° | SPD: 0</div>
-        <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div><span>ROUTE</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div><span>DETECTION</span></div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div><span>VEHICLE</span></div>
-        </div>
-      </div>
-      <div class="side">
-        <div class="card" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
-          <div class="card-title">// DETECTION EVENTS</div>
-          <div class="event-list" id="eventList"></div>
-        </div>
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;font-size:.6rem;color:var(--dim)">
-            <span>EVENTS: <span id="eventCount" style="color:var(--red)">0</span></span>
-            <span>POINTS: <span id="pointCount" style="color:var(--accent)">0</span></span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <footer><span>GESTDRIVE_CONTROL_v2.1</span><span id="clock">00:00:00</span></footer>
+  <footer><span>GESTDRIVE_v2.2</span><span id="footerStats">PTS: 0</span><span id="footerSession">—</span></footer>
 </div>
 
-<!-- Modal -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
-  <div class="modal-box">
-    <div class="modal-close" onclick="closeModal()">&times;</div>
-    <img id="modalImage" src="">
-    <div class="modal-detections" id="modalDetections"></div>
-    <div class="modal-info" id="modalInfo"></div>
-  </div>
+  <div class="modal-box"><div class="modal-close" onclick="closeModal()">&times;</div>
+    <img id="modalImage" src=""><div class="modal-detections" id="modalDetections"></div><div class="modal-info" id="modalInfo"></div></div>
 </div>
 
 <script>
-// ===== TABS =====
-document.querySelectorAll('.tab-btn').forEach(b=>{
-  b.addEventListener('click',()=>{
-    document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
-    b.classList.add('active');
-    document.getElementById('tab-'+b.dataset.tab).classList.add('active');
-  });
-});
-
-// ===== CLOCK =====
 setInterval(()=>{document.getElementById('clock').textContent=new Date().toLocaleTimeString('ko-KR',{hour12:false})},1000);
 
-// ===== MAP STATE =====
-const canvas=document.getElementById('mapCanvas');
-const ctx=canvas.getContext('2d');
-const CW=canvas.width, CH=canvas.height;
-const CX=CW/2, CY=CH/2;
-const MARGIN=50; // 캔버스 경계 마진
+const canvas=document.getElementById('mapCanvas'),ctx=canvas.getContext('2d');
+let CW,CH,CX,CY;
+function resizeCanvas(){const r=canvas.parentElement.getBoundingClientRect();canvas.width=r.width;canvas.height=r.height;CW=canvas.width;CH=canvas.height;CX=CW/2;CY=CH/2;if(!car.x)initCarPos();drawMap();}
+window.addEventListener('load',resizeCanvas);
+window.addEventListener('resize',resizeCanvas);
 
-let car={x:CX, y:CY, angle:0, speed:0.5};
-let trail=[];       // 모든 점 (일반 이동)
-let sigEvents=[];   // significant 이벤트만
-let lastCmd='';
-let moveTimer=null;
-let socketAlive=false;
+const MARGIN=20;
+let car={x:0,y:0,angle:0,speed:.5},trail=[],sigEvents=[],lastCmd='',moveTimer=null,socketAlive=false,cmdLogItems=[];
+function initCarPos(){car.x=CX;car.y=CY;}
+function speedToStep(s){return Math.max(1.5,Math.round((s||.5)*8));}
+function moveCar(cmd,speed){if(!socketAlive||!cmd||cmd==='STP'||cmd==='READY')return;const step=speedToStep(speed);if(cmd==='LFT')car.angle-=12;if(cmd==='RIT')car.angle+=12;const rad=(car.angle-90)*Math.PI/180;let dx=Math.cos(rad)*step,dy=Math.sin(rad)*step;if(cmd==='BAK'){dx=-dx;dy=-dy;}if(cmd==='LFT'||cmd==='RIT'){dx*=.5;dy*=.5;}const nx=car.x+dx,ny=car.y+dy;if(nx<MARGIN||nx>CW-MARGIN||ny<MARGIN||ny>CH-MARGIN)return;car.x=nx;car.y=ny;trail.push({x:car.x,y:car.y,sig:false});document.getElementById('footerStats').textContent=`PTS: ${trail.length}`;drawMap();}
+function startAutoMove(c,s){stopAutoMove();moveCar(c,s);moveTimer=setInterval(()=>moveCar(c,car.speed),400);}
+function stopAutoMove(){if(moveTimer){clearInterval(moveTimer);moveTimer=null;}}
+function addSigMarker(evt){const pt={x:car.x,y:car.y,sig:true,savePath:evt.save_path,label:evt.label||'',confidence:evt.confidence||0,distance:evt.distance_cm||0,speed:evt.speed||0,command:evt.current_command||'',time:evt.timestamp||''};trail.push(pt);sigEvents.push(pt);addEventCard(pt);document.getElementById('eventCount').textContent=`(${sigEvents.length})`;drawMap();}
 
-// speed → step 매핑: speed 0.3=3px, 0.5=5px, 0.9=9px
-function speedToStep(spd){ return Math.max(2, Math.round((spd||0.5) * 10)); }
+function drawMap(){if(!CW)return;ctx.fillStyle='#04080f';ctx.fillRect(0,0,CW,CH);ctx.strokeStyle='#0a1525';ctx.lineWidth=.5;for(let x=0;x<CW;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}for(let y=0;y<CH;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}ctx.fillStyle='#00ff9d';ctx.beginPath();ctx.arc(CX,CY,3,0,Math.PI*2);ctx.fill();ctx.font='8px JetBrains Mono';ctx.fillText('START',CX+5,CY+3);if(trail.length>1){ctx.beginPath();ctx.strokeStyle='rgba(0,212,255,.1)';ctx.lineWidth=1;ctx.moveTo(trail[0].x,trail[0].y);for(let i=1;i<trail.length;i++)ctx.lineTo(trail[i].x,trail[i].y);ctx.stroke();}trail.forEach(pt=>{if(pt.sig){ctx.fillStyle='rgba(255,61,90,.07)';ctx.beginPath();ctx.arc(pt.x,pt.y,14,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,61,90,.18)';ctx.beginPath();ctx.arc(pt.x,pt.y,8,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff3d5a';ctx.beginPath();ctx.arc(pt.x,pt.y,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,61,90,.5)';ctx.font='7px JetBrains Mono';ctx.fillText(pt.label,pt.x+7,pt.y-2);}else{ctx.fillStyle='rgba(0,212,255,.3)';ctx.beginPath();ctx.arc(pt.x,pt.y,1,0,Math.PI*2);ctx.fill();}});const rad=(car.angle-90)*Math.PI/180;ctx.save();ctx.translate(car.x,car.y);ctx.rotate(rad+Math.PI/2);ctx.fillStyle='#ffd93d';ctx.shadowColor='#ffd93d';ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(-4,5);ctx.lineTo(4,5);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.restore();document.getElementById('mapHud').textContent=`POS:(${Math.round(car.x-CX)},${Math.round(CY-car.y)}) HDG:${((car.angle%360)+360)%360}° SPD:${car.speed.toFixed(2)}`;}
+function resetMap(){car={x:CX,y:CY,angle:0,speed:.5};trail=[];sigEvents=[];stopAutoMove();lastCmd='';document.getElementById('eventList').innerHTML='';document.getElementById('eventCount').textContent='(0)';document.getElementById('footerStats').textContent='PTS: 0';drawMap();}
+function centerMap(){}
 
-function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+canvas.addEventListener('click',e=>{const r=canvas.getBoundingClientRect();const sx=canvas.width/r.width,sy=canvas.height/r.height;const mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sy;let cl=null,md=18;sigEvents.forEach(pt=>{const d=Math.sqrt((pt.x-mx)**2+(pt.y-my)**2);if(d<md){md=d;cl=pt;}});if(cl)openModal(cl);});
 
-function moveCar(cmd, speed){
-  // 소켓 끊어졌으면 이동 안 함
-  if(!socketAlive) return;
-  if(!cmd || cmd==='STP' || cmd==='READY') return;
-
-  const step = speedToStep(speed);
-
-  // 방향 변경
-  if(cmd==='LFT') car.angle -= 12;
-  if(cmd==='RIT') car.angle += 12;
-
-  const rad = (car.angle - 90) * Math.PI / 180;
-  let dx = Math.cos(rad) * step;
-  let dy = Math.sin(rad) * step;
-
-  if(cmd==='BAK'){ dx=-dx; dy=-dy; }
-  if(cmd==='LFT'||cmd==='RIT'){ dx*=0.5; dy*=0.5; }
-
-  // 경계 체크 — 벽에 닿으면 이동 중단 (밖으로 안 나감)
-  const nx = car.x + dx;
-  const ny = car.y + dy;
-  if(nx < MARGIN || nx > CW-MARGIN || ny < MARGIN || ny > CH-MARGIN) return;
-
-  car.x = nx;
-  car.y = ny;
-
-  trail.push({x:car.x, y:car.y, sig:false});
-  document.getElementById('pointCount').textContent = trail.length;
-  drawMap();
+function addCmdLog(cmd,source,duration,speed,timestamp,cmdLogData){
+  const list=document.getElementById('cmdLogList'),el=document.createElement('div');
+  const cls=source==='PC'?'pc':'manual';
+  const durTxt=duration<0?'∞':(typeof duration==='number'?duration.toFixed(1)+'s':'?');
+  const t=timestamp?(timestamp.split(' ').pop()||''):'';
+  const canUndo=cmd!=='STP'&&cmd!=='READY'&&cmd!=='';
+  const logData=cmdLogData||{command:cmd,source:source,duration:duration,speed:speed,actual_duration:duration<0?null:duration};
+  el.className=`log-item ${cls}`;
+  el.innerHTML=`<div class="log-body"><span class="log-time">${t}</span> <span class="log-cmd">${cmd}</span> <span class="log-dur">${durTxt}</span> <span class="log-src ${cls}">${source}</span></div><div class="log-actions"><button class="log-btn undo" title="되돌리기" ${canUndo?'':'disabled'}>↩</button><button class="log-btn redo" title="다시실행" ${canUndo?'':'disabled'}>↪</button></div>`;
+  el.querySelector('.log-btn.undo').addEventListener('click',e=>{e.stopPropagation();execPlanAction('/api/plan/undo',logData,e.target);});
+  el.querySelector('.log-btn.redo').addEventListener('click',e=>{e.stopPropagation();execPlanAction('/api/plan/redo',logData,e.target);});
+  list.prepend(el);cmdLogItems.push(logData);
+  document.getElementById('cmdLogCount').textContent=`(${cmdLogItems.length})`;
 }
 
-function startAutoMove(cmd, speed){
-  stopAutoMove();
-  moveCar(cmd, speed); // 즉시 한 번
-  moveTimer = setInterval(()=> moveCar(cmd, car.speed), 400);
-}
-function stopAutoMove(){
-  if(moveTimer){clearInterval(moveTimer);moveTimer=null;}
-}
-
-// ===== SIGNIFICANT EVENT → 맵에 큰 빨간 마커 =====
-function addSignificantMarker(evt){
-  const pt = {
-    x: car.x, y: car.y, sig: true,
-    savePath: evt.save_path,
-    label: evt.label || '',
-    confidence: evt.confidence || 0,
-    distance: evt.distance_cm || 0,
-    speed: evt.speed || 0,
-    command: evt.current_command || '',
-    time: evt.timestamp || new Date().toLocaleTimeString('ko-KR',{hour12:false})
-  };
-  trail.push(pt);
-  sigEvents.push(pt);
-  addEventCard(pt);
-  document.getElementById('eventCount').textContent = sigEvents.length;
-  document.getElementById('pointCount').textContent = trail.length;
-  drawMap();
+async function execPlanAction(url,data,btn){
+  const o=btn.textContent;btn.textContent='⏳';btn.disabled=true;
+  try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const d=await r.json();const el=document.getElementById('planStatus');
+    if(d.error){el.textContent=`⚠️ ${d.error}`;el.style.color='var(--red)';}
+    else{const lb=d.type==='UNDO'?`↩ ${d.original}→${d.reversed}`:`↪ ${d.command}`;el.textContent=`🚀 ${lb} (${d.duration}s)`;el.style.color=d.type==='UNDO'?'var(--red)':'var(--green)';}
+  }catch{document.getElementById('planStatus').textContent='⚠️ 실패';document.getElementById('planStatus').style.color='var(--red)';}
+  finally{btn.textContent=o;btn.disabled=false;}
 }
 
-// ===== DRAW MAP =====
-function drawMap(){
-  ctx.fillStyle='#04080f';
-  ctx.fillRect(0,0,CW,CH);
+function addEventCard(pt){const list=document.getElementById('eventList'),card=document.createElement('div');card.className='event-card';const dc=pt.distance<30?'red':pt.distance<60?'yellow':'green';card.innerHTML=`<div class="event-time">${pt.time}</div><div class="event-label">${pt.label} (${(pt.confidence*100).toFixed(0)}%)</div><div class="event-detail"><span class="det-tag ${dc}">~${pt.distance}cm</span> ${pt.command}</div>`;card.onclick=()=>openModal(pt);list.prepend(card);}
 
-  // Grid
-  ctx.strokeStyle='#0a1628'; ctx.lineWidth=0.5;
-  for(let x=0;x<CW;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
-  for(let y=0;y<CH;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}
+function openModal(pt){if(!pt.savePath)return;document.getElementById('modalImage').src='/imgs/'+pt.savePath+'.jpg';document.getElementById('modalImage').onerror=function(){this.alt='이미지 없음'};const dc=pt.distance<30?'red':pt.distance<60?'yellow':'green';document.getElementById('modalDetections').innerHTML=`<span class="det-tag ${dc}">${pt.label} ${(pt.confidence*100).toFixed(0)}%</span> <span class="det-tag ${dc}">~${pt.distance}cm</span>`;document.getElementById('modalInfo').textContent=`${pt.time} | ${pt.savePath}.jpg`;document.getElementById('modal').classList.add('active');}
+function closeModal(e){if(!e||e.target===document.getElementById('modal'))document.getElementById('modal').classList.remove('active');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
 
-  // Start
-  ctx.fillStyle='#00ff9d';
-  ctx.beginPath();ctx.arc(CX,CY,5,0,Math.PI*2);ctx.fill();
-  ctx.font='10px JetBrains Mono';ctx.fillText('START',CX+8,CY+3);
-
-  // Trail line
-  if(trail.length>1){
-    ctx.beginPath();ctx.strokeStyle='rgba(0,212,255,.15)';ctx.lineWidth=1.5;
-    ctx.moveTo(trail[0].x,trail[0].y);
-    for(let i=1;i<trail.length;i++) ctx.lineTo(trail[i].x,trail[i].y);
-    ctx.stroke();
-  }
-
-  // Dots
-  trail.forEach(pt=>{
-    if(pt.sig){
-      // 큰 빨간 글로우 마커
-      ctx.fillStyle='rgba(255,61,90,.1)';ctx.beginPath();ctx.arc(pt.x,pt.y,22,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='rgba(255,61,90,.2)';ctx.beginPath();ctx.arc(pt.x,pt.y,14,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#ff3d5a';ctx.beginPath();ctx.arc(pt.x,pt.y,7,0,Math.PI*2);ctx.fill();
-      // Label 텍스트
-      ctx.fillStyle='rgba(255,61,90,.7)';ctx.font='9px JetBrains Mono';
-      ctx.fillText(`${pt.label} ${(pt.confidence*100).toFixed(0)}%`, pt.x+12, pt.y-6);
-      ctx.fillStyle='rgba(255,61,90,.5)';
-      ctx.fillText(`~${pt.distance}cm`, pt.x+12, pt.y+6);
-    } else {
-      ctx.fillStyle='rgba(0,212,255,.4)';ctx.beginPath();ctx.arc(pt.x,pt.y,1.5,0,Math.PI*2);ctx.fill();
-    }
-  });
-
-  // Car triangle
-  const rad=(car.angle-90)*Math.PI/180;
-  ctx.save();ctx.translate(car.x,car.y);ctx.rotate(rad+Math.PI/2);
-  ctx.fillStyle='#ffd93d';ctx.shadowColor='#ffd93d';ctx.shadowBlur=14;
-  ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(-7,8);ctx.lineTo(7,8);ctx.closePath();ctx.fill();
-  ctx.shadowBlur=0;ctx.restore();
-
-  // HUD
-  document.getElementById('mapHud').textContent=
-    `POS: (${Math.round(car.x-CX)}, ${Math.round(CY-car.y)}) | HDG: ${((car.angle%360)+360)%360}° | SPD: ${car.speed.toFixed(2)}`;
-}
-
-// ===== EVENT CARD =====
-function addEventCard(pt){
-  const list=document.getElementById('eventList');
-  const card=document.createElement('div');
-  card.className='event-card sig';
-  const dc = pt.distance<30?'red':pt.distance<60?'yellow':'green';
-  card.innerHTML=`
-    <div class="event-time">${pt.time}</div>
-    <div class="event-label">${pt.label} <span style="color:var(--dim)">(${(pt.confidence*100).toFixed(0)}%)</span></div>
-    <div class="event-detail">
-      <span class="det-tag ${dc}">~${pt.distance}cm</span>
-      <span style="color:var(--dim)">CMD: ${pt.command} | SPD: ${pt.speed}</span>
-    </div>`;
-  card.onclick=()=>openModal(pt);
-  list.prepend(card);
-}
-
-// ===== CANVAS CLICK → 가까운 significant 마커 =====
-canvas.addEventListener('click',e=>{
-  const rect=canvas.getBoundingClientRect();
-  const sx=canvas.width/rect.width, sy=canvas.height/rect.height;
-  const mx=(e.clientX-rect.left)*sx, my=(e.clientY-rect.top)*sy;
-  let closest=null, minD=30;
-  sigEvents.forEach(pt=>{
-    const d=Math.sqrt((pt.x-mx)**2+(pt.y-my)**2);
-    if(d<minD){minD=d;closest=pt;}
-  });
-  if(closest) openModal(closest);
-});
-
-// ===== MODAL (이미지 + YOLO 결과) =====
-function openModal(pt){
-  if(!pt.savePath) return;
-  const img = document.getElementById('modalImage');
-  img.src = '/imgs/' + pt.savePath + '.jpg';
-  img.onerror = function(){ this.alt='이미지를 찾을 수 없습니다'; };
-
-  const dc = pt.distance<30?'red':pt.distance<60?'yellow':'green';
-  document.getElementById('modalDetections').innerHTML=`
-    <span class="det-tag ${dc}">${pt.label} ${(pt.confidence*100).toFixed(0)}%</span>
-    <span class="det-tag ${dc}">~${pt.distance}cm</span>
-    <span style="color:var(--dim);font-size:.6rem;margin-left:6px">CMD: ${pt.command} | SPD: ${pt.speed}</span>`;
-  document.getElementById('modalInfo').textContent = `${pt.time} | ${pt.savePath}.jpg`;
-  document.getElementById('modal').classList.add('active');
-}
-function closeModal(e){
-  if(!e||e.target===document.getElementById('modal'))
-    document.getElementById('modal').classList.remove('active');
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
-
-function resetMap(){
-  car={x:CX,y:CY,angle:0,speed:0.5};trail=[];sigEvents=[];
-  stopAutoMove();lastCmd='';
-  document.getElementById('eventList').innerHTML='';
-  document.getElementById('eventCount').textContent='0';
-  document.getElementById('pointCount').textContent='0';
-  drawMap();
-}
-
-function centerMap(){
-  const wrap=document.getElementById('mapWrap');
-  wrap.scrollLeft=car.x-wrap.clientWidth/2;
-  wrap.scrollTop=car.y-wrap.clientHeight/2;
-}
-
-// ===== POLLING 1: Vehicle state (200ms) =====
+let _prevPollCmd=null;
 setInterval(async()=>{
-  try{
-    const res=await fetch('/api/vehicle_state');
-    const s=await res.json();
-    if(!s||Object.keys(s).length===0){
-      socketAlive=false;
-      stopAutoMove();
-      document.getElementById('socketBadge').className='badge off';
-      document.getElementById('socketBadge').textContent='○ NO DATA';
-      return;
-    }
-
-    socketAlive=true;
-    document.getElementById('socketBadge').className='badge on';
-    document.getElementById('socketBadge').textContent='● SOCKET ACTIVE';
-
-    // Camera tab - 상태 표시
+  try{const res=await fetch('/api/vehicle_state');const s=await res.json();
+    if(!s||!Object.keys(s).length){socketAlive=false;stopAutoMove();document.getElementById('socketBadge').className='badge off';document.getElementById('socketBadge').textContent='○ DISCONNECTED';return;}
+    socketAlive=true;document.getElementById('socketBadge').className='badge on';document.getElementById('socketBadge').textContent='● CONNECTED';
     document.getElementById('vCommand').textContent=s.current_command||'IDLE';
     document.getElementById('vSpeed').textContent=s.speed!==undefined?s.speed.toFixed(2):'—';
     document.getElementById('vStatus').textContent=s.status||'—';
-    const m=document.getElementById('vMock');
-    if(s.mock_mode){m.textContent='MOCK';m.style.color='var(--yellow)';}
-    else{m.textContent='GPIO';m.style.color='var(--green)';}
+    const m=document.getElementById('vMock');if(s.mock_mode){m.textContent='MOCK';m.style.color='var(--yellow)';}else{m.textContent='GPIO';m.style.color='var(--green)';}
     document.getElementById('vTimestamp').textContent=s.timestamp||'—';
-
-    // Map tab - 이동 제어
-    const cmd=s.current_command||'';
-    const spd=s.speed||0.5;
-    car.speed=spd;
-
-    if(cmd!==lastCmd){
-      lastCmd=cmd;
-      if(!cmd||cmd==='STP'||s.status==='READY'){
-        stopAutoMove();
-      } else {
-        startAutoMove(cmd, spd);
-      }
-    }
-  }catch{
-    socketAlive=false;
-    stopAutoMove();
-    document.getElementById('socketBadge').className='badge off';
-    document.getElementById('socketBadge').textContent='○ DISCONNECTED';
-  }
+    document.getElementById('vDevice').textContent=s.device_id||'—';
+    if(s.session_id){document.getElementById('sessionInfo').textContent=`SESSION: ${s.session_id}`;document.getElementById('footerSession').textContent=`${s.device_id} / ${s.session_id}`;}
+    if(!car.x)initCarPos();const cmd=s.current_command||'',spd=s.speed||.5;car.speed=spd;
+    if(cmd!==lastCmd){lastCmd=cmd;if(!cmd||cmd==='STP'||s.status==='READY')stopAutoMove();else startAutoMove(cmd,spd);}
+    if(cmd!==_prevPollCmd&&cmd){addCmdLog(cmd,'MANUAL',-1,spd,s.timestamp,{command:cmd,source:'MANUAL',duration:-1,speed:spd,actual_duration:null,session_id:s.session_id});_prevPollCmd=cmd;}
+  }catch{socketAlive=false;stopAutoMove();document.getElementById('socketBadge').className='badge off';document.getElementById('socketBadge').textContent='○ DISCONNECTED';}
 },200);
 
-// ===== POLLING 2: Significant events (500ms) =====
-setInterval(async()=>{
-  try{
-    const res=await fetch('/api/significant_events');
-    const evts=await res.json();
-    if(Array.isArray(evts)){
-      evts.forEach(evt=> addSignificantMarker(evt));
-    }
-  }catch{}
-},500);
+setInterval(async()=>{try{const r=await fetch('/api/significant_events');const e=await r.json();if(Array.isArray(e))e.forEach(ev=>addSigMarker(ev));}catch{}},500);
 
-// ===== SEND COMMAND =====
 async function sendTimedCommand(){
-  const cmd=document.getElementById('cmdSelect').value;
-  const duration=parseFloat(document.getElementById('cmdDuration').value);
-  const btn=document.getElementById('cmdSendBtn');
-  const result=document.getElementById('cmdResult');
-  btn.textContent='⏳ EXECUTING...';btn.style.borderColor='var(--yellow)';btn.style.color='var(--yellow)';btn.disabled=true;
-  try{
-    const res=await fetch('/api/execute_for',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,duration})});
-    const data=await res.json();
-    result.textContent=data.blocked?`🚫 BLOCKED: ${data.reason}`:`✅ ${data.executed} × ${data.duration}s`;
-    result.style.color=data.blocked?'var(--red)':'var(--green)';
-  }catch{result.textContent='⚠️ 통신 실패';result.style.color='var(--red)';
-  }finally{btn.textContent='▶ EXECUTE';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';btn.disabled=false;}
+  const cmd=document.getElementById('cmdSelect').value,dur=parseFloat(document.getElementById('cmdDuration').value);
+  const btn=document.getElementById('cmdSendBtn'),rel=document.getElementById('cmdResult');
+  btn.textContent='⏳';btn.style.borderColor='var(--yellow)';btn.style.color='var(--yellow)';btn.disabled=true;
+  try{const r=await fetch('/api/execute_for',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({command:cmd,duration:dur})});const d=await r.json();
+    rel.textContent=d.error?`⚠️ ${d.reason}`:`✅ ${d.executed} × ${d.duration}s`;rel.style.color=d.error?'var(--red)':'var(--green)';
+    if(!d.error)addCmdLog(cmd,'PC',dur,car.speed,new Date().toLocaleTimeString('ko-KR',{hour12:false}),{command:cmd,source:'PC',duration:dur,speed:car.speed,actual_duration:dur});
+  }catch{rel.textContent='⚠️ 통신 실패';rel.style.color='var(--red)';}
+  finally{btn.textContent='▶ EXECUTE';btn.style.borderColor='var(--accent)';btn.style.color='var(--accent)';btn.disabled=false;}
 }
 
-// Init
-drawMap();
-centerMap();
+async function returnHome(){const el=document.getElementById('planStatus');el.textContent='⏳ RETURN HOME...';el.style.color='var(--green)';try{const r=await fetch('/api/plan/return_home',{method:'POST'});const d=await r.json();if(d.error){el.textContent=`⚠️ ${d.error}`;el.style.color='var(--red)';}else{el.textContent=`🚀 RETURN HOME (${d.total_steps}단계)`;}}catch{el.textContent='⚠️ 실패';el.style.color='var(--red)';}}
+async function replaySession(){const el=document.getElementById('planStatus');el.textContent='⏳ REPLAY...';el.style.color='var(--yellow)';try{const r=await fetch('/api/plan/replay',{method:'POST'});const d=await r.json();if(d.error){el.textContent=`⚠️ ${d.error}`;el.style.color='var(--red)';}else{el.textContent=`🚀 REPLAY (${d.total_steps}단계)`;}}catch{el.textContent='⚠️ 실패';el.style.color='var(--red)';}}
+async function cancelPlan(){try{await fetch('/api/plan/cancel',{method:'POST'});}catch{}document.getElementById('planStatus').textContent='■ 취소됨';document.getElementById('planStatus').style.color='var(--dim)';}
+
+window.addEventListener('load',()=>{initCarPos();drawMap();});
 </script>
 </body>
 </html>
