@@ -198,6 +198,7 @@ class GestureApp:
                 display_image = cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR)
             else: # 손이 없을때 일반 화면 출력
                 self.model.reset_memory()
+                self.model.gesture_controller.update({}, None)
                 display_image = frame
 
             current_result = self.read_data()

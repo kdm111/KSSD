@@ -14,6 +14,6 @@ class Pre_DNN:
 
         x = self.scaler.transform(x)
 
-        pred = self.model(x, traning = False).numpy()[0]
+        pred = self.model(x).numpy()[0]
 
         return pred

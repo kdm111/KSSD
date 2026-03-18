@@ -132,10 +132,11 @@ class GestureController:
             self._l_used = self._r_used = True
             tmp = self.alphabet_map.get(_RAW_TO_GESTURE.get(self._r_key, None), None)
             if tmp is not None:
-                key = tmp.get(_RAW_TO_GESTURE.get(self._l_key, 0) - 1, 0)
-                if key is not None:
-                    print(key)
-                    Keyboard.press_key(key)
+                indx = _RAW_TO_GESTURE.get(self._l_key, 0) - 1
+                if 0 <= indx < 6:
+                    key = tmp[indx]
+                    if key is not 0:
+                        Keyboard.press_key(key)
 
         return None
 

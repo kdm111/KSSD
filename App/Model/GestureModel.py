@@ -9,9 +9,10 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
+from .Gesture import GestureController
 
 
-MAX_HAND = 1
+MAX_HAND = 2
 MARGIN = 10
 FONT_SIZE = 1
 FONT_THICKNESS = 1
@@ -34,15 +35,26 @@ class GestureModel:
     
     def __init__(self, csv_path):
         self.csv_path = csv_path
-        self.lstm_path = './Model/test_lstm_model.h5'
+        # self.lstm_path = './Model/test_lstm_model.h5'
+        
         self.knn = None
+
+        self.interpreter = tf.lite.Interpreter(model_path="./Model/test_lstm_model.tflite")
+        self.interpreter.allocate_tensors()
+        self.input_details = self.interpreter.get_input_details()
+        self.output_details = self.interpreter.get_output_details()
+
         self.DNN = Pre_DNN()
-        self.AIModel = tf.keras.models.load_model(self.lstm_path)
+        self.gesture_controller = GestureController()
+        # self.AIModel = tf.keras.models.load_model(self.lstm_path)
         self.reload()
         # --- 2. MediaPipe 설정 및 유틸리티 ---
         self.mp_hands = mp.tasks.vision.HandLandmarksConnections
-        self.mp_drawing = mp.tasks.vision.drawing_utils
-        self.mp_drawing_styles = mp.tasks.vision.drawing_styles
+        self.connection = vision.HandLandmarksConnections.HAND_CONNECTIONS
+        # self.mp_drawing = mp.tasks.vision.drawing_utils
+        # self.mp_drawing_styles = mp.tasks.vision.drawing_styles
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.mp_drawing_styles = mp.solutions.drawing_styles
 
         self.base_options = python.BaseOptions(model_asset_path='hand_landmarker.task')
         self.options = vision.HandLandmarkerOptions(base_options=self.base_options, num_hands=MAX_HAND)
@@ -66,6 +78,7 @@ class GestureModel:
         
         annotated_image = np.copy(rgb_image)
         self.insert_signal = '' # 가장 최근에 손으로 인식하였을 때 나오는 문자
+        results = {}
 
         for idx in range(len(hand_landmarks_list)):
             hand_landmarks = hand_landmarks_list[idx]
@@ -81,12 +94,38 @@ class GestureModel:
             hand_side = hand_side * 100
 
             # 랜드마크 시각화
-            self.mp_drawing.draw_landmarks(
-                annotated_image,
-                hand_landmarks,
-                self.mp_hands.HAND_CONNECTIONS,
-                self.mp_drawing_styles.get_default_hand_landmarks_style(),
-                self.mp_drawing_styles.get_default_hand_connections_style())
+            # self.mp_drawing.draw_landmarks(
+            #     annotated_image,
+            #     hand_landmarks,
+            #     self.mp_hands.HAND_CONNECTIONS,
+            #     self.mp_drawing_styles.get_default_hand_landmarks_style(),
+            #     self.mp_drawing_styles.get_default_hand_connections_style())
+            image_h, image_w, _ = annotated_image.shape
+
+            # 관절 연결선 그리기
+            for connection in self.connection:
+                start_idx, end_idx = connection.start, connection.end
+                start_lm = hand_landmarks[start_idx]
+                end_lm = hand_landmarks[end_idx]
+                start_point = (int(start_lm.x * image_w), int(start_lm.y * image_h))
+                end_point = (int(end_lm.x * image_w), int(end_lm.y * image_h))
+                cv2.line(annotated_image, start_point, end_point, (0, 255, 255), 2)
+
+            # 관절 포인트 그리기
+            for lm in hand_landmarks:
+                px = int(lm.x * image_w)
+                py = int(lm.y * image_h)
+                cv2.circle(annotated_image, (px, py), 4, (255, 80, 80), -1)
+
+            
+            # h, w, _ = annotated_image.shape
+            # for connection in mp.solutions.hands.HAND_CONNECTIONS:
+            #     start = hand_landmarks[connection[0]]
+            #     end   = hand_landmarks[connection[1]]
+            #     x0, y0 = int(start.x * w), int(start.y * h)
+            #     x1, y1 = int(end.x * w),   int(end.y * h)
+            #     cv2.line(annotated_image, (x0, y0), (x1, y1), (0, 255, 0), 2)
+
 
             # 제스처 판정을 위한 각도 계산 (핵심 로직 추가)
             joint = np.array([[lm.x, lm.y, lm.z] for lm in hand_landmarks])
@@ -107,6 +146,7 @@ class GestureModel:
             v_p1 = joint[[0, 0], :]   # 시작점: 손목, 손목
             v_p2 = joint[[5, 17], :]  # 끝점: 검지뿌리, 새끼뿌리
             v_palm = v_p2 - v_p1
+            v = joint[[0, 5, 9, 13, 17]] - 0.5
 
             # 3. 외적(Cross Product)으로 손바닥 법선 벡터 계산
             # v_palm[0]은 손목->검지, v_palm[1]은 손목->새끼
@@ -118,82 +158,64 @@ class GestureModel:
             DNN_data = np.append(angle,hand_side/100)
             full_data = np.append(full_data, palm_normal)
 
-            # DNN
-
             pred = self.DNN.predict_gesture(DNN_data)
-            right_result = None
-            left_result = None
+            if hand_side == 100:
+                results['right'] = pred
+                results['center'] = v.mean(axis=0)
+            else :
+                results['left'] = pred
 
-            if hand_label == "Left":
-                right_result = pred
-            elif hand_label == "Right":
-                left_result = pred
+
             
-            result =  {
-                "left": left_result,
-                "right": right_result
-            }
-    
-            # DNN 변수
-            pred_left = result["left"]
-            if pred_left is None:
-                pred_left = [0 for _ in LABEL_HEADER]
-            pred_right = result["right"]
-            if pred_right is None:
-                pred_right = [0 for _ in LABEL_HEADER]
-            
-            # pred_right = [1 if i > 0.7 else 0 for i in pred_right]
-            # pred_left = [1 if i > 0.7 else 0 for i in pred_left]
-
-            # print(pred_left,pred_right)
-
-
             # 기존모델
-            self.sequence.append(full_data)
-            self.sequence = self.sequence[-self.seq_length:] 
+            # TODO Restore
+            # self.sequence.append(full_data)
+            # self.sequence = self.sequence[-self.seq_length:] 
 
-            if hand_label == "Left": # 좌우반전기준 오른손
-                if not self.is_predicting and len(self.sequence) == self.seq_length:
-                    # 별도 스레드에서 돌려서 메인 루프(화면 출력)를 방해하지 않음
-                    thread = threading.Thread(target=self.LSTM_Predict)
-                    thread.daemon = True
-                    thread.start()
-                else:
-                    self.current_label=''
-            else:
-                if len(self.action_seq) > self.action_length:
-                    self.action_seq.pop(0)
+            # if hand_label == "Left": # 좌우반전기준 오른손
+            #     if not self.is_predicting and len(self.sequence) == self.seq_length:
+            #         # 별도 스레드에서 돌려서 메인 루프(화면 출력)를 방해하지 않음
+            #         thread = threading.Thread(target=self.LSTM_Predict)
+            #         thread.daemon = True
+            #         thread.start()
+            #     else:
+            #         self.current_label=''
+            # else:
+            #     if len(self.action_seq) > self.action_length:
+            #         self.action_seq.pop(0)
                     
-                self.action_seq.append(-1)
+            #     self.action_seq.append(-1)
             
 
-            threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
-            display_text = ""
-            # KNN 추론
-            if self.knn is not None:
-                data = np.array([full_data], dtype=np.float32)
-                ret, results, neighbours, dist = self.knn.findNearest(data, 3)
-                idx = int(results[0][0])
+            # threshold = 2000.0 # 손 제스처가 비슷함을 나타내는 임계값
+            # display_text = ""
+            # # KNN 추론
+            # if self.knn is not None:
+            #     data = np.array([full_data], dtype=np.float32)
+            #     ret, results, neighbours, dist = self.knn.findNearest(data, 3)
+            #     idx = int(results[0][0])
 
-                if dist[0][0] < threshold:
-                    if idx in gesture_names:
-                        display_text += f"{gesture_names[idx]}"
+            #     if dist[0][0] < threshold:
+            #         if idx in gesture_names:
+            #             display_text += f"{gesture_names[idx]}"
             
             # 텍스트 위치 선정 (바운딩 박스 상단)
-            height, width, _ = annotated_image.shape
-            x_coords = [landmark.x for landmark in hand_landmarks]
-            y_coords = [landmark.y for landmark in hand_landmarks]
-            text_x = int(min(x_coords) * width)
-            text_y = int(min(y_coords) * height) - MARGIN
+            # height, width, _ = annotated_image.shape
+            # x_coords = [landmark.x for landmark in hand_landmarks]
+            # y_coords = [landmark.y for landmark in hand_landmarks]
+            # text_x = int(min(x_coords) * width)
+            # text_y = int(min(y_coords) * height) - MARGIN
 
-            if len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
-                self.insert_signal = display_text
+            # if len(display_text)>0: # 특정 손동작이 감지되었을 때만 신호보내기
+            #     self.insert_signal = display_text
 
-            self.insert_new_data = full_data
+            # self.insert_new_data = full_data
             
-            cv2.putText(annotated_image, display_text, (text_x, text_y), 
-                        cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
+            # cv2.putText(annotated_image, display_text, (text_x, text_y), 
+            #             cv2.FONT_HERSHEY_DUPLEX, FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA)
 
+        # TODO
+        self.gesture_controller.update(results, results.get('center', None))
         return annotated_image
 
     def reload(self):
@@ -250,8 +272,11 @@ class GestureModel:
                         if len(self.action_seq) > self.action_length: self.action_seq.pop(0)
                     return
                 
-                res = self.AIModel(input_data, training=False).numpy()[0]
-                
+                # res = self.AIModel(input_data, training=False).numpy()[0]
+                self.interpreter.set_tensor(self.input_details[0]['index'], input_data)
+                self.interpreter.invoke()
+                res = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
+
                 idx = np.argmax(res) # 가장 높은 확률의 인덱스 
                 confidence = res[idx] # 해당 확률 값
 
