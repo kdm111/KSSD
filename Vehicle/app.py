@@ -36,6 +36,9 @@ def get_key():
         try:
             tty.setraw(fd)
             key = sys.stdin.read(1)
+            # 첫 글자가 영문 대문자면 → 3글자 명령 (FOR, BAK 등)
+            if key.isupper():
+                key += sys.stdin.read(2)
         finally:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
         return key
