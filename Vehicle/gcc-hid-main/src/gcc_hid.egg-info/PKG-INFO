@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: gcc-hid
-Version: 0.1.0
-Summary: Default template for PDM package
-Author-email: sangaje <qhals8380@gmail.com>
-License: MIT
-Requires-Python: ==3.10.*
-Description-Content-Type: text/markdown
-Requires-Dist: dbus-python>=1.4.0

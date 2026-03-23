@@ -57,23 +57,6 @@ class CommandLog(BaseModel):
 
 # ===== 기존 테이블 =====
 
-class Log(BaseModel):
-    timestamp = TextField()
-    gesture = CharField()
-    operation = CharField()
-
-    class Meta:
-        table_name = 'log'
-
-
-class Gesture(BaseModel):
-    timestamp = TextField()
-    gesture = CharField()
-    action_map = CharField()
-
-    class Meta:
-        table_name = 'gesture'
-
 
 class VehicleStateLog(BaseModel):
     device_id = CharField(default="default")
