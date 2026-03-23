@@ -31,7 +31,7 @@ def gesture_init_log():
         's': 'BAK',
         'a': 'LFT',
         'd': 'RIT',
-        'x': 'STP'
+        'b': 'STP'
     }
     alphabets = string.ascii_lowercase
     for alpha in alphabets:
@@ -83,6 +83,15 @@ def get_gesture_action(gesture:str):
     try:
         record = Gesture.select(Gesture.action_map).where(Gesture.gesture == gesture).get()
         return record.action_map
+    except Gesture.DoesNotExist:
+        # 만약 해당 제스처가 DB에 없다면 처리
+        return None
+
+# id -> gesture 가져오기
+def get_id_gesture(id:int):
+    try:
+        record = Gesture.select(Gesture.gesture).where(Gesture.id == id).get()
+        return record.gesture
     except Gesture.DoesNotExist:
         # 만약 해당 제스처가 DB에 없다면 처리
         return None

@@ -194,6 +194,10 @@ def _handle_connection(conn, addr):
                 "speed": spd,
                 "current_command": cmd,
                 "mock_mode": current_state.get("mock_mode"),
+                "front_distance": current_state.get("front_distance"),
+                "rear_distance": current_state.get("rear_distance"),
+                "front_safe": current_state.get("front_safe"),
+                "rear_safe": current_state.get("rear_safe"),
             }
 
             # ===== 수동 명령 변경 → CommandLog (source=MANUAL) =====

@@ -25,7 +25,7 @@ front_distance_sensor = MicroWave("FRONT")
 rear_distance_sensor = MicroWave("REAR")
 cap = Cap(0)
 
-PC_IP = "10.10.14.1"  # PC Flask가 돌아가는 IP
+PC_IP = "192.168.100.114"  # PC Flask가 돌아가는 IP
 PC_PORT = 9999
 KST = ZoneInfo("Asia/Seoul")
 
@@ -46,7 +46,7 @@ def get_key():
 def keyboard_listener(drive_manager):
     key_map = {
         'w': 'FOR', 's': 'BAK', 'a': 'LFT', 'd': 'RIT',
-        'e': 'FST', 'r': 'SLW', ' ': 'STP', 'x': 'SPN',
+        'e': 'FST', 'r': 'SLW', ' ': 'STP', 'p': 'SPN',
         'FOR': 'FOR', 'BAK': 'BAK', 'LFT': 'LFT', 'RIT': 'RIT',
         'FST': 'FST', 'SLW': 'SLW', 'STP': 'STP', 'SPN': 'SPN'
     }
@@ -71,7 +71,7 @@ async def lifespan(app: FastAPI):
     front_distance_sensor.connect()
     rear_distance_sensor.connect()  
     drive_manager = DriveManager(vehicle, front_distance_sensor, rear_distance_sensor, cap)
-    drive_manager.start_safety_monitor()
+    #drive_manager.start_safety_monitor()
     # 키보드 스레드
     threading.Thread(target=keyboard_listener, args=(drive_manager,), daemon=True).start()
 

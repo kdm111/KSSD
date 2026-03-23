@@ -16,8 +16,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 IMGS_DIR = os.path.join(BASE_DIR, "imgs")
 os.makedirs(IMGS_DIR, exist_ok=True)
 
-# ===== 모션 플래너 (세션 연결 시 생성) =====
-planner = None
+
 
 def get_planner():
     """현재 세션의 플래너를 가져오거나 새로 생성"""
@@ -34,7 +33,7 @@ def get_planner():
 
 # ===== 로깅 필터 =====
 class NoPollingLog(logging.Filter):
-    FILTERED = {'/api/vehicle_state', '/api/significant_events'}
+    FILTERED = {'/api/vehicle_state', '/api/significant_events', '/api/gesture'}
     def filter(self, record):
         return not any(p in record.getMessage() for p in self.FILTERED)
 

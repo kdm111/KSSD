@@ -1,5 +1,5 @@
 import socket
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 import time
 import cv2
@@ -11,7 +11,7 @@ KST = ZoneInfo("Asia/Seoul")
 
 def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
     """PC에 데이터를 소켓으로 전송"""
-    
+
     time.sleep(1.5)  # 카메라 준비 대기
 
     while True:
@@ -40,15 +40,16 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
             while True:
                 frame = cap.get_display_frame()
                 if frame is None:
+                    print("⚠️ frame None")  # ← 이거 추가
                     time.sleep(0.03)
                     continue
-
+                print(f"📤 sending frame")  # ← 이거도 추가
                 now = datetime.now(KST)
                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S.") + f"{now.microsecond // 1000:03d}"
 
                 _, buffer = cv2.imencode('.jpg', frame)
                 img_data = buffer.tobytes()
-                
+
                 vehicle_state = vehicle.get_info()
                 vehicle_state["timestamp"] = timestamp
                 state_data = json.dumps(vehicle_state).encode('utf-8')
@@ -58,6 +59,8 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                 detections = cap.get_detections()
                 closest = min(detections, key=lambda d: d["distance_cm"]) if detections else {}
 
+                front_sensor = drive_manager.front_sensor
+                rear_sensor = drive_manager.rear_sensor
                 state_data = json.dumps({
                     **vehicle_state,
                     "save_path": save_path,
@@ -65,6 +68,10 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                     "confidence": closest.get("confidence", 0),
                     "distance_cm": closest.get("distance_cm", 0),
                     "bbox_area": (closest["bbox"][2]-closest["bbox"][0]) * (closest["bbox"][3]-closest["bbox"][1]) if closest.get("bbox") else None,
+                    "front_distance": front_sensor.get_distance(),   # ← 추가
+                    "rear_distance": rear_sensor.get_distance(),      # ← 추가
+                    "front_safe": front_sensor.is_safe(),             # ← 추가
+                    "rear_safe": rear_sensor.is_safe(),               # ← 추가
                 }).encode('utf-8')
 
                 vehicle_id_bytes = vehicle.id.encode('utf-8')
@@ -77,6 +84,7 @@ def socket_stream(cap, vehicle, drive_manager, PC_IP, PC_PORT):
                     struct.pack(">L", len(state_data)) +  # 상태 크기
                     state_data +                          # 상태 JSON
                     struct.pack(">?", save_flag)          # bool 1바이트로 전송
+                    
                 )
         except BrokenPipeError:
             print("⚠️ Broken pipe - 재연결 시도")

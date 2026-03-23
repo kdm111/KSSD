@@ -7,8 +7,8 @@ import os
 import time
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
-from pynput import keyboard
-# from gcc import Keyboard
+# from pynput import keyboard
+from gcc import Keyboard
 from DB import get_gesture_action
 from DB import insert_log
 from DB import insert_gesture_log
@@ -18,6 +18,7 @@ from DB import get_gesture_id
 from DB import check_gesture_exists
 from DB import get_gesture_all
 from DB import get_id_action
+from DB import get_id_gesture
 
 from .GestureModel import GestureModel
 from .TimeManager import TimeManager
@@ -124,45 +125,45 @@ class GestureApp:
     def read_data(self):
         return self.model.insert_signal
 
-    def on_press(self, key):
-        try:
-            c = None
+    # def on_press(self, key):
+    #     try:
+    #         c = None
 
-            if key == keyboard.Key.esc:
-                self.exit_program = True
-                return False  # 리스너 스레드 종료
+    #         if key == keyboard.Key.esc:
+    #             self.exit_program = True
+    #             return False  # 리스너 스레드 종료
 
-            if hasattr(key, 'char') and key.char is not None:
-                c = key.char
+    #         if hasattr(key, 'char') and key.char is not None:
+    #             c = key.char
 
-            if c is None:
-                return
+    #         if c is None:
+    #             return
 
-            # 모드별 동작 (Insert 등)
-            if self.flags["i"]:
-                self.insert_data(c)
-            elif self.flags["d"]:
-                self.delete_data(c) # 삭제함수
-            elif self.flags["u"]:
-                if self.update_count == 0:
-                    self.old_chr = c
-                    self.update_count = 1
-                    print(f"대상 라벨 {self.old_chr} 선택됨. 바꿀 라벨을 누르세요.")
-                elif self.update_count == 1:
-                    new_chr = c
-                    # 실제 데이터 수정 함수 호출
-                    self.update_data(self.old_chr, new_chr)
-                    self.update_count=0
+    #         # 모드별 동작 (Insert 등)
+    #         if self.flags["i"]:
+    #             self.insert_data(c)
+    #         elif self.flags["d"]:
+    #             self.delete_data(c) # 삭제함수
+    #         elif self.flags["u"]:
+    #             if self.update_count == 0:
+    #                 self.old_chr = c
+    #                 self.update_count = 1
+    #                 print(f"대상 라벨 {self.old_chr} 선택됨. 바꿀 라벨을 누르세요.")
+    #             elif self.update_count == 1:
+    #                 new_chr = c
+    #                 # 실제 데이터 수정 함수 호출
+    #                 self.update_data(self.old_chr, new_chr)
+    #                 self.update_count=0
 
-        except AttributeError:
-            import traceback
-            traceback.print_exc()
+    #     except AttributeError:
+    #         import traceback
+    #         traceback.print_exc()
 
     def run(self):
         prev = None
         # 키보드 리스너 시작
-        listener = keyboard.Listener(on_press=self.on_press)
-        listener.start()
+        # listener = keyboard.Listener(on_press=self.on_press)
+        # listener.start()
         tm = TimeManager() # 원하는 시간마다 작동하게하는 함수
 
         while self.cap.isOpened() and not self.exit_program:
@@ -204,8 +205,22 @@ class GestureApp:
             
             # todo
             if self.model.get_key()!=None:
-                print(f"키값 : {self.model.get_key()+1}")
-                print(f"액션값 : {get_id_action(self.model.get_key()+1)}")
+                print(self.model.gesture_controller.device)
+                # print(self.model.gesture_controller.device is not None)
+                # print('RPi' in self.model.gesture_controller.device)
+                if (self.model.gesture_controller.device is not None) and ('RPi' in self.model.gesture_controller.device):
+                    action = get_id_action(self.model.get_key()+1)
+                    print(action)
+                    if action is not None:
+                        Keyboard.send_cmd(str(action))
+                #자동차모드가 아니면
+                else:
+                    action = get_id_gesture(self.model.get_key()+1)
+                    print(action)
+                    if action is not None:
+                        Keyboard.press_key(str(action))
+
+                # Keyboard.send_string(str())
 
             current_result = self.read_data()
             if prev != current_result and tm.is_time_up('output', self.output_interval) and len(self.model.insert_signal) > 0:
